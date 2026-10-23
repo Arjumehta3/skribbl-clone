@@ -6,6 +6,7 @@ export enum SocketEvent {
   PLAYER_JOINED = "player_joined",
   PLAYER_LEFT = "player_left",
   START_GAME = "start_game",
+    LEAVE_ROOM = "leave_room",
 
  
   GAME_STATE = "game_state",
@@ -15,6 +16,7 @@ export enum SocketEvent {
   HINT_UPDATE = "hint_update",
   ROUND_END = "round_end",
   GAME_OVER = "game_over",
+
 
   DRAW_START = "draw_start",
   DRAW_MOVE = "draw_move",
@@ -30,4 +32,6 @@ export enum SocketEvent {
   CHAT_MESSAGE = "chat_message",
 
   ERROR = "error",
+
+  
 }
