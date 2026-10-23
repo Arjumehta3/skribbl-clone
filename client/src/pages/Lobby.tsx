@@ -36,11 +36,15 @@ const COLORS = [
 
 function getStoredPlayer() {
   const name = sessionStorage.getItem("playerName")?.trim();
-  const avatar = sessionStorage.getItem("playerAvatar");
+  const storedAvatar = sessionStorage.getItem("playerAvatar");
+  const avatarChoices = ["😀", "😎", "🤓", "🥷", "🤠", "👽", "🧟", "👹"];
+  const avatarIndex = Number(storedAvatar);
 
   return {
     name: name || "Guest",
-    avatar: avatar || "😊",
+    avatar: storedAvatar !== null && Number.isInteger(avatarIndex) && storedAvatar !== ""
+      ? avatarChoices[((avatarIndex % avatarChoices.length) + avatarChoices.length) % avatarChoices.length]
+      : storedAvatar || "😊",
   };
 }
 
@@ -57,6 +61,7 @@ export default function Lobby() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawingRef = useRef(false);
   const lastPoint = useRef({ x: 0, y: 0 });
+  const undoStack = useRef<ImageData[]>([]);
 
   const [currentPlayer] = useState(getStoredPlayer);
   const [players] = useState<Player[]>([
@@ -70,7 +75,17 @@ export default function Lobby() {
     },
   ]);
 
-  const [timeLeft, setTimeLeft] = useState(80);
+  const roomSettings = (() => {
+    try {
+      return JSON.parse(sessionStorage.getItem("roomSettings") || "{}") as { rounds?: number; drawTime?: number; maxPlayers?: number };
+    } catch {
+      return {};
+    }
+  })();
+  const totalRounds = roomSettings.rounds ?? 3;
+  const drawTime = roomSettings.drawTime ?? 80;
+  const roomCode = sessionStorage.getItem("roomId") || "DEMO";
+  const [timeLeft, setTimeLeft] = useState(drawTime);
   const [round, setRound] = useState(1);
   const [word, setWord] = useState("");
   const [choosingWord, setChoosingWord] = useState(true);
@@ -94,14 +109,14 @@ export default function Lobby() {
           window.clearInterval(timerId);
           setChoosingWord(true);
           setWord("");
-          setRound((currentRound) => currentRound >= 3 ? 1 : currentRound + 1);
+          setRound((currentRound) => currentRound >= totalRounds ? 1 : currentRound + 1);
 
           setMessages((currentMessages) => [
             ...currentMessages,
             createMessage("System", "Round ended. Choose a new word!", "system"),
           ]);
 
-          return 80;
+          return drawTime;
         }
 
         return current - 1;
@@ -109,7 +124,7 @@ export default function Lobby() {
     }, 1000);
 
     return () => window.clearInterval(timerId);
-  }, [choosingWord]);
+  }, [choosingWord, drawTime, totalRounds]);
 
   const getCanvasPoint = (event: PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current!;
@@ -130,6 +145,12 @@ export default function Lobby() {
     if (!canvas || !context) return;
 
     event.currentTarget.setPointerCapture(event.pointerId);
+    try {
+      undoStack.current.push(context.getImageData(0, 0, canvas.width, canvas.height));
+      if (undoStack.current.length > 30) undoStack.current.shift();
+    } catch {
+      // Canvas snapshot may be unavailable in restricted browser contexts.
+    }
     drawingRef.current = true;
     lastPoint.current = getCanvasPoint(event);
 
@@ -176,13 +197,27 @@ export default function Lobby() {
     const context = canvas?.getContext("2d");
 
     if (canvas && context) {
+      try {
+        undoStack.current.push(context.getImageData(0, 0, canvas.width, canvas.height));
+      } catch {
+        // Ignore unavailable snapshots.
+      }
       context.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  };
+
+  const undoDrawing = () => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    const previous = undoStack.current.pop();
+    if (canvas && context && previous) {
+      context.putImageData(previous, 0, 0);
     }
   };
 
   const chooseWord = (selectedWord: string) => {
     setWord(selectedWord);
-    setTimeLeft(80);
+    setTimeLeft(drawTime);
     setChoosingWord(false);
 
     setMessages((currentMessages) => [
@@ -197,10 +232,22 @@ export default function Lobby() {
     const message = guess.trim();
     if (!message) return;
 
+    const isCorrect = !choosingWord && message.toLowerCase() === word.toLowerCase();
     setMessages((currentMessages) => [
       ...currentMessages,
-      createMessage(currentPlayer.name, message, "guess"),
+      createMessage(currentPlayer.name, isCorrect ? `🎉 ${message} — correct! (demo only)` : message, "guess"),
     ]);
+
+    if (isCorrect) {
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        createMessage("System", "Correct guess detected locally. Server-side scoring is BACKEND REQUIRED.", "system"),
+      ]);
+      setChoosingWord(true);
+      setWord("");
+      setRound((currentRound) => currentRound >= totalRounds ? 1 : currentRound + 1);
+      clearCanvas();
+    }
 
     setGuess("");
   };
@@ -218,7 +265,12 @@ export default function Lobby() {
         <span className="brand-pencil" aria-hidden="true">✏️</span>
         <span className="brand-name">skribbl</span>
         <span className="brand-tagline">Free Multiplayer Drawing</span>
+        <span className="room-code-badge">Room: <b>{roomCode}</b></span>
+        <button className="leave-room-button" onClick={() => { window.location.href = "/"; }}>Leave</button>
       </header>
+      <div className="frontend-demo-notice">
+        Frontend demo only — multiplayer sync, server timer, authoritative scoring and room validation are <b>BACKEND REQUIRED</b>.
+      </div>
 
       <section className="round-bar">
         <div className="round-timer">
@@ -226,7 +278,7 @@ export default function Lobby() {
           <strong>{timeLeft}</strong>
         </div>
 
-        <strong className="round-number">Round {round} of 3</strong>
+        <strong className="round-number">Round {round} of {totalRounds}</strong>
 
         <div className="word-display">
           <span>{choosingWord ? "CHOOSE A WORD" : "GUESS THIS"}</span>
@@ -409,6 +461,10 @@ export default function Lobby() {
               aria-label="Eraser"
             >
               🧽
+            </button>
+
+            <button onClick={undoDrawing} title="Undo last stroke" aria-label="Undo last stroke">
+              ↶
             </button>
 
             <button onClick={clearCanvas} title="Clear canvas" aria-label="Clear canvas">

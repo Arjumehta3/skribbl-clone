@@ -705,3 +705,18 @@ select {
     scroll-behavior: auto !important;
   }
 }
+
+.join-room-button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 13px 16px;
+  border: 2px solid #9bb8e8;
+  border-radius: 7px;
+  background: #edf4ff;
+  color: #24569b;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform .15s ease, background .15s ease;
+}
+.join-room-button:hover { transform: translateY(-2px); background: #dceaff; }

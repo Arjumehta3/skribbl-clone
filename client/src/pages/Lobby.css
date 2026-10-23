@@ -633,3 +633,8 @@
     justify-content: flex-start;
   }
 }
+
+.room-code-badge { margin-left: 12px; padding: 5px 9px; border: 1px dashed #dbe8ff; border-radius: 5px; font-size: 12px; text-shadow: none; }
+.leave-room-button { margin-left: 8px; padding: 6px 10px; border: 1px solid #ffffff70; border-radius: 5px; background: #ffffff18; color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; }
+.frontend-demo-notice { max-width: 1500px; margin: 0 auto 6px; padding: 7px 10px; border: 1px solid #f1d18a; border-radius: 4px; background: #fff7e5; color: #72551d; font-size: 12px; text-align: center; }
+@media (max-width: 560px) { .room-code-badge { margin-left: auto; font-size: 10px; padding: 4px; } .leave-room-button { margin-left: 3px; padding: 4px; } .frontend-demo-notice { font-size: 10px; } }

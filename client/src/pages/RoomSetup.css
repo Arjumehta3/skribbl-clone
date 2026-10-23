@@ -1,0 +1,23 @@
+* { box-sizing: border-box; }
+.room-setup-page { min-height: 100vh; padding: 28px 16px; display: grid; place-items: center; background: #28599b; background-image: radial-gradient(#ffffff18 2px, transparent 2px); background-size: 24px 24px; font-family: Arial, Helvetica, sans-serif; color: #17213a; }
+.room-setup-card { width: min(100%, 680px); padding: 28px; border: 3px solid #174784; border-radius: 12px; background: #fff; box-shadow: 0 8px 0 #173f72; }
+.back-link { border: 0; background: transparent; color: #28599b; font-weight: 700; cursor: pointer; font-size: 15px; }
+.setup-logo { margin: 8px 0; color: #28599b; font-size: 28px; font-weight: 900; text-align: center; }
+.room-setup-card h1 { margin: 8px 0; color: #17213a; text-align: center; font-size: 30px; letter-spacing: -0.5px; }
+.setup-subtitle { margin-bottom: 24px; color: #667795; text-align: center; }
+.setup-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.setup-grid label { display: flex; flex-direction: column; gap: 8px; color: #273957; font-size: 14px; font-weight: 700; }
+.setup-grid label strong { float: right; color: #2865b8; }
+.setup-grid input[type="range"] { width: 100%; accent-color: #2865b8; }
+.setup-grid small { color: #71809a; font-weight: 400; }
+.setup-grid select { width: 100%; padding: 10px; border: 1px solid #bdcbe0; border-radius: 5px; background: #fff; }
+.private-toggle { display: flex; align-items: center; gap: 10px; margin: 22px 0; font-size: 14px; }
+.private-toggle input { accent-color: #2865b8; }
+.backend-notice { margin: 16px 0; padding: 12px; border-left: 4px solid #e2a128; border-radius: 4px; background: #fff7e5; color: #72551d; font-size: 13px; line-height: 1.5; }
+.primary-setup-button { width: 100%; padding: 14px; border: 0; border-radius: 6px; background: #2865b8; color: white; font-size: 16px; font-weight: 800; cursor: pointer; }
+.primary-setup-button:hover { background: #174784; }
+.join-card { max-width: 480px; }
+.room-code-label { display: block; margin-bottom: 8px; font-weight: 700; }
+.room-code-input { width: 100%; padding: 14px; border: 2px solid #b9cce8; border-radius: 6px; font-size: 22px; font-weight: 800; letter-spacing: 4px; text-align: center; }
+.form-error { margin-top: 8px; color: #c62828; font-size: 13px; }
+@media (max-width: 560px) { .room-setup-card { padding: 20px 16px; } .setup-grid { grid-template-columns: 1fr; } .room-setup-card h1 { font-size: 26px; } }

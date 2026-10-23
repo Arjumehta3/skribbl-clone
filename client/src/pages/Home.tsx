@@ -273,7 +273,19 @@ export default function Home() {
 
     sessionStorage.setItem("playerName", finalPlayerName);
     sessionStorage.setItem("playerAvatar", String(avatarIndex));
-    navigate("/lobby");
+    sessionStorage.setItem("selectedLanguage", language);
+    navigate("/create-room");
+  };
+
+  const handleJoinRoom = () => {
+    const finalPlayerName =
+      playerName.trim() ||
+      `Player${Math.floor(1000 + Math.random() * 9000)}`;
+
+    sessionStorage.setItem("playerName", finalPlayerName);
+    sessionStorage.setItem("playerAvatar", String(avatarIndex));
+    sessionStorage.setItem("selectedLanguage", language);
+    navigate("/join-room");
   };
 
   return (
@@ -380,6 +392,14 @@ export default function Home() {
               onClick={handleCreateRoom}
             >
               + Create Private Room
+            </button>
+
+            <button
+              type="button"
+              className="join-room-button"
+              onClick={handleJoinRoom}
+            >
+              ↗ Join with Room Code
             </button>
           </div>
         </section>
