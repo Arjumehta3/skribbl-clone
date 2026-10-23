@@ -1,10 +1,13 @@
 import type { Server } from "socket.io";
 import { Player } from "./Player.js";
+import { Game } from "./Game.js";
+import { GamePhase } from "../enums/GamePhase.js";
 import type { PlayerDTO, RoomSettings } from "../types/index.js";
 
 export class Room {
-  public readonly id: string; 
+  public readonly id: string; // room code, jaise AB12XY
   public settings: RoomSettings;
+  public game: Game | null = null;
   private players: Map<string, Player> = new Map();
   private io: Server;
 
@@ -14,13 +17,13 @@ export class Room {
     this.io = io;
   }
 
- 
+  // ---------- Players ----------
 
   addPlayer(player: Player): void {
     if (this.isFull()) {
       throw new Error("Room is full");
     }
-    
+    // Pehla player hamesha host banta hai
     if (this.players.size === 0) {
       player.isHost = true;
     }
@@ -33,7 +36,7 @@ export class Room {
 
     this.players.delete(playerId);
 
- 
+    // Host chala gaya to sabse purane player ko naya host banao
     if (player.isHost && this.players.size > 0) {
       const nextHost = this.players.values().next().value;
       if (nextHost) nextHost.isHost = true;
@@ -65,12 +68,42 @@ export class Room {
     return this.players.size === 0;
   }
 
- 
+  // ---------- Game ----------
+
+  startGame(): Game {
+    if (this.game && this.game.phase !== GamePhase.GAME_OVER) {
+      throw new Error("Game already started");
+    }
+    const game = new Game(this);
+    game.start();
+    this.game = game;
+    return game;
+  }
+
+  updateSettings(newSettings: RoomSettings): void {
+    if (this.game && this.game.phase !== GamePhase.GAME_OVER) {
+      throw new Error("Cannot change settings during a game");
+    }
+    if (newSettings.maxPlayers < this.players.size) {
+      throw new Error("Max players cannot be less than current players");
+    }
+    this.settings = newSettings;
+  }
+
+  resetToLobby(): void {
+    this.game?.destroy();
+    this.game = null;
+    this.players.forEach((p) => p.resetForGame());
+  }
+
+  // ---------- Broadcast ----------
+
+  // Room ke sabhi players ko event bhejo
   broadcast(event: string, data?: unknown): void {
     this.io.to(this.id).emit(event, data);
   }
 
-  
+  // Sirf ek player ko event bhejo
   sendTo(playerId: string, event: string, data?: unknown): void {
     this.io.to(playerId).emit(event, data);
   }

@@ -23,7 +23,7 @@ export class RoomManager {
   }
 
   
-  private sanitizeSettings(input: Partial<RoomSettings> = {}): RoomSettings {
+   sanitizeSettings(input: Partial<RoomSettings> = {}): RoomSettings {
     const d = DEFAULT_SETTINGS;
     const wordMode = Object.values(WordMode).includes(input.wordMode as WordMode)
       ? (input.wordMode as WordMode)

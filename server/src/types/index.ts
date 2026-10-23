@@ -28,4 +28,5 @@ export interface PlayerDTO {
   score: number;
   hasGuessed: boolean;
   isHost: boolean;
+    isReady: boolean;
 }

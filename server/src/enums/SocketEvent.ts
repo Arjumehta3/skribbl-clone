@@ -8,6 +8,13 @@ export enum SocketEvent {
   START_GAME = "start_game",
     LEAVE_ROOM = "leave_room",
 
+      UPDATE_SETTINGS = "update_settings",
+  SETTINGS_UPDATED = "settings_updated",
+  TOGGLE_READY = "toggle_ready",
+  PLAYERS_UPDATED = "players_updated",
+  PLAY_AGAIN = "play_again",
+  ROOM_RESET = "room_reset",
+
  
   GAME_STATE = "game_state",
   ROUND_START = "round_start",
@@ -24,6 +31,7 @@ export enum SocketEvent {
   DRAW_DATA = "draw_data",
   CANVAS_CLEAR = "canvas_clear",
   DRAW_UNDO = "draw_undo",
+    CANVAS_STATE = "canvas_state",
 
   
   GUESS = "guess",

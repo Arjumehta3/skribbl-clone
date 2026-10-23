@@ -4,6 +4,8 @@ import cors from "cors";
 import { Server } from "socket.io";
 import { RoomManager } from "./classes/RoomManager.js";
 import { registerRoomHandlers } from "./handlers/roomHandlers.js";
+import { registerGameHandlers } from "./handlers/gameHandlers.js";
+import { registerDrawHandlers } from "./handlers/drawHandlers.js";
 
 const PORT = Number(process.env.PORT) || 3000;
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
@@ -26,6 +28,8 @@ io.on("connection", (socket) => {
   console.log("Player connected:", socket.id);
 
   registerRoomHandlers(io, socket, rooms);
+    registerGameHandlers(io, socket, rooms);
+      registerDrawHandlers(io, socket, rooms);
 
   socket.on("ping", () => {
     socket.emit("pong", { time: Date.now() });

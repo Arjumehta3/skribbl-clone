@@ -1,0 +1,635 @@
+
+* {
+  box-sizing: border-box;
+}
+
+.skribbl-game {
+  min-height: 100vh;
+  padding: 0 16px 18px;
+  overflow-x: hidden;
+  color: #111;
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: #28599b;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke='%23174781' stroke-width='4' stroke-linecap='round' stroke-linejoin='round' opacity='.85'%3E%3Cpath d='M25 28l9-10 10 10-4 15-12 2z M25 28l17 15 M94 19q15-7 20 8l-8 11-13-3z M129 70l12-17 10 19-11 12z M22 111l17-7 8 13-14 10z M86 118l13-14 14 17-12 13z M125 143q17-14 25 2l-7 11-17-2z M64 66l15-11 8 14-14 12z M12 157l20-7 5 13-22 3z'/%3E%3Ccircle cx='66' cy='27' r='9'/%3E%3Ccircle cx='68' cy='25' r='2'/%3E%3Cpath d='M57 38q10 9 19-1 M103 76l8 8 8-8 M96 85l8 7 7-7 M47 89l13-5 7 10-10 9z M145 28l9-7 9 10-9 9z'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+
+.skribbl-brand {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #fff;
+  font-size: 28px;
+  font-weight: 900;
+  text-shadow: 2px 2px #163b70;
+}
+
+.brand-pencil {
+  font-size: 25px;
+}
+
+.brand-name {
+  letter-spacing: -1.5px;
+}
+
+.brand-tagline {
+  margin: 8px 0 0 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.round-bar {
+  position: relative;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: 58px 1fr 1fr 46px;
+  align-items: center;
+  min-height: 62px;
+  max-width: 1500px;
+  margin: 0 auto 5px;
+  padding: 4px 10px;
+  border: 3px solid #174784;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.round-timer {
+  display: flex;
+  width: 47px;
+  height: 47px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #171717;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 0 #aaa;
+}
+
+.timer-symbol {
+  font-size: 12px;
+  line-height: 12px;
+}
+
+.round-timer strong {
+  font-size: 20px;
+  line-height: 23px;
+}
+
+.round-number {
+  font-size: 20px;
+}
+
+.word-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-family: monospace;
+}
+
+.word-display span {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.word-display strong {
+  min-height: 19px;
+  font-size: 17px;
+  letter-spacing: 3px;
+}
+
+.settings-button {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 0.18s ease;
+}
+
+.settings-button:hover {
+  transform: rotate(25deg);
+}
+
+.settings-button svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(1px 2px 0 #a0a0a0);
+}
+
+.game-settings-panel {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 4px;
+  z-index: 20;
+  width: 235px;
+  padding: 15px;
+  border: 2px solid #174784;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 5px 18px #0004;
+}
+
+.settings-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.settings-panel-header strong {
+  font-size: 16px;
+}
+
+.settings-panel-header button {
+  border: 0;
+  background: transparent;
+  font-size: 23px;
+  cursor: pointer;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  font-size: 14px;
+}
+
+.setting-row input {
+  accent-color: #2865b8;
+}
+
+.clear-board-setting {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid #b5c9e8;
+  border-radius: 5px;
+  background: #edf4ff;
+  color: #204d92;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.skribbl-layout {
+  display: grid;
+  grid-template-columns: 235px minmax(0, 1fr) 300px;
+  gap: 5px;
+  width: 100%;
+  max-width: 1500px;
+  min-height: min(78vh, 760px);
+  margin: 0 auto;
+}
+
+.skribbl-players {
+  align-self: start;
+  overflow: hidden;
+  border: 2px solid #174784;
+  border-radius: 5px;
+  background: #fff;
+}
+
+.skribbl-player {
+  display: grid;
+  grid-template-columns: 37px minmax(0, 1fr) 48px;
+  align-items: center;
+  min-height: 55px;
+  padding: 3px 5px;
+  background: #fff;
+}
+
+.skribbl-player:nth-child(even) {
+  background: #ededed;
+}
+
+.skribbl-player.current-player {
+  background: #eaf3ff;
+}
+
+.player-rank {
+  align-self: start;
+  padding-top: 5px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.player-info {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+}
+
+.player-info strong {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-info span {
+  font-size: 12px;
+}
+
+.player-face {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 35px;
+  line-height: 1.2;
+}
+
+.skribbl-board {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 500px;
+  flex-direction: column;
+  overflow: hidden;
+  border: 2px solid #174784;
+  border-radius: 5px;
+  background: #fff;
+}
+
+.skribbl-canvas {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  background: #fff;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.canvas-disabled {
+  cursor: default;
+}
+
+.board-reactions {
+  position: absolute;
+  top: 6px;
+  right: 9px;
+  z-index: 3;
+  display: flex;
+  gap: 5px;
+}
+
+.reaction-button {
+  display: grid;
+  width: 44px;
+  height: 48px;
+  place-items: center;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 0.16s ease;
+}
+
+.reaction-button:hover {
+  transform: rotate(-8deg) scale(1.12);
+}
+
+.reaction-button svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(1px 1px 0 #aaa);
+}
+
+.thumbs-up svg {
+  transform: rotate(-8deg);
+}
+
+.thumbs-down svg {
+  transform: rotate(7deg);
+}
+
+.word-choice-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: #ffffffec;
+}
+
+.word-choice-card {
+  width: min(100%, 440px);
+  padding: 25px 18px;
+  border: 2px dashed #8bb8f7;
+  border-radius: 12px;
+  background: #f8fbff;
+  text-align: center;
+}
+
+.word-choice-pencil {
+  font-size: 36px;
+}
+
+.word-choice-card h2 {
+  margin: 10px 0;
+  color: #192b58;
+  font-size: 23px;
+}
+
+.word-choice-card p {
+  color: #667795;
+  font-size: 14px;
+}
+
+.word-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 20px;
+}
+
+.word-options button {
+  padding: 12px 15px;
+  border: 2px solid #b9d2f7;
+  border-radius: 7px;
+  background: #eaf3ff;
+  color: #174784;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.word-options button:hover {
+  transform: translateY(-2px);
+  background: #d5e7ff;
+}
+
+.skribbl-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 9px;
+  border-top: 2px solid #d8e3f3;
+  background: #f7faff;
+}
+
+.skribbl-tools > button {
+  display: grid;
+  width: 33px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid #c5d4e8;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.skribbl-tools > button:hover {
+  background: #e6efff;
+}
+
+.skribbl-tools > button.selected-tool {
+  border: 2px solid #2865b8;
+  background: #dceaff;
+}
+
+.skribbl-tools label {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.skribbl-tools input[type="range"] {
+  width: 65px;
+  accent-color: #2865b8;
+}
+
+.skribbl-colors {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.skribbl-colors button {
+  width: 19px;
+  height: 19px;
+  padding: 0;
+  border: 1px solid #777;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.skribbl-colors button.selected-color {
+  outline: 2px solid #2865b8;
+  outline-offset: 2px;
+}
+
+.skribbl-chat {
+  display: flex;
+  min-width: 0;
+  min-height: 500px;
+  flex-direction: column;
+  border: 2px solid #174784;
+  border-radius: 5px;
+  background: #fff;
+}
+
+.chat-feed {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding: 14px 10px;
+}
+
+.skribbl-message strong {
+  color: #2865b8;
+  font-size: 13px;
+}
+
+.skribbl-message p {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.skribbl-message .system-message {
+  color: #2865b8;
+  font-weight: 600;
+}
+
+.skribbl-message.reaction p {
+  font-size: 22px;
+}
+
+.skribbl-guess-form {
+  display: flex;
+  gap: 5px;
+  padding: 6px;
+}
+
+.skribbl-guess-form input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 7px;
+  border: 1px solid #999;
+  border-radius: 4px;
+  outline-color: #3976c7;
+  font-size: 13px;
+}
+
+.skribbl-guess-form button {
+  padding: 0 12px;
+  border: 0;
+  border-radius: 4px;
+  background: #2865b8;
+  color: #fff;
+  cursor: pointer;
+}
+
+@media (max-width: 1050px) {
+  .skribbl-layout {
+    grid-template-columns: 190px minmax(0, 1fr) 250px;
+  }
+
+  .skribbl-player {
+    grid-template-columns: 30px minmax(0, 1fr) 38px;
+  }
+
+  .player-face {
+    font-size: 29px;
+  }
+}
+
+@media (max-width: 820px) {
+  .skribbl-layout {
+    grid-template-columns: 175px minmax(0, 1fr);
+  }
+
+  .skribbl-chat {
+    grid-column: 1 / -1;
+    min-height: 260px;
+  }
+
+  .chat-feed {
+    min-height: 180px;
+  }
+}
+
+@media (max-width: 560px) {
+  .skribbl-game {
+    padding: 0 6px 12px;
+  }
+
+  .skribbl-brand {
+    min-height: 36px;
+    gap: 4px;
+    font-size: 23px;
+  }
+
+  .brand-pencil {
+    font-size: 21px;
+  }
+
+  .brand-tagline {
+    font-size: 8px;
+  }
+
+  .round-bar {
+    grid-template-columns: 43px minmax(0, 1fr) minmax(0, 1fr) 30px;
+    min-height: 54px;
+    padding: 3px;
+  }
+
+  .round-timer {
+    width: 37px;
+    height: 37px;
+    border-width: 2px;
+  }
+
+  .round-timer strong {
+    font-size: 16px;
+    line-height: 18px;
+  }
+
+  .round-number {
+    font-size: 12px;
+  }
+
+  .word-display span {
+    font-size: 9px;
+  }
+
+  .word-display strong {
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+
+  .settings-button {
+    width: 29px;
+    height: 29px;
+  }
+
+  .skribbl-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .skribbl-players {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .skribbl-player {
+    grid-template-columns: 27px minmax(0, 1fr) 34px;
+    min-height: 45px;
+  }
+
+  .player-face {
+    font-size: 26px;
+  }
+
+  .player-info strong {
+    font-size: 11px;
+  }
+
+  .player-info span {
+    font-size: 10px;
+  }
+
+  .skribbl-board {
+    min-height: 380px;
+  }
+
+  .skribbl-chat {
+    grid-column: auto;
+    min-height: 250px;
+  }
+
+  .reaction-button {
+    width: 35px;
+    height: 39px;
+  }
+
+  .skribbl-tools {
+    gap: 7px;
+  }
+
+  .skribbl-colors {
+    justify-content: flex-start;
+  }
+}
