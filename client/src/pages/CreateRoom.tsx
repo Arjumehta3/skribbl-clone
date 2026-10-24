@@ -1,34 +1,29 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useGame } from "../context/GameContext";
+import { WordMode } from "../enums/WordMode";
+import type { RoomSettings } from "../types";
 import "./RoomSetup.css";
-
-type RoomSettings = {
-  maxPlayers: number;
-  rounds: number;
-  drawTime: number;
-  wordCount: number;
-  hints: number;
-  wordMode: "normal" | "hidden" | "combination";
-  isPrivate: boolean;
-};
 
 export default function CreateRoom() {
   const navigate = useNavigate();
+  const { connected, roomId, error, createRoom, clearError } = useGame();
   const [settings, setSettings] = useState<RoomSettings>({
     maxPlayers: 8, rounds: 3, drawTime: 80, wordCount: 3, hints: 2,
-    wordMode: "normal", isPrivate: true,
+    wordMode: WordMode.NORMAL, isPrivate: true,
   });
 
   const update = <K extends keyof RoomSettings>(key: K, value: RoomSettings[K]) =>
     setSettings((current) => ({ ...current, [key]: value }));
 
-  const createRoom = () => {
-    const roomCode = Math.random().toString(36).slice(2, 8).toUpperCase();
-    sessionStorage.setItem("roomId", roomCode);
-    sessionStorage.setItem("roomSettings", JSON.stringify(settings));
-    sessionStorage.setItem("roomHost", "true");
-    // BACKEND REQUIRED: create the room on the server and receive its authoritative room ID.
-    navigate("/lobby");
+  // Server ne room bana diya (room_joined aaya) to lobby kholo
+  useEffect(() => {
+    if (roomId) navigate(`/room/${roomId}`);
+  }, [roomId, navigate]);
+
+  const handleCreate = () => {
+    clearError();
+    createRoom(settings);
   };
 
   return (
@@ -60,9 +55,9 @@ export default function CreateRoom() {
           </label>
           <label>Word mode
             <select value={settings.wordMode} onChange={(e) => update("wordMode", e.target.value as RoomSettings["wordMode"])}>
-              <option value="normal">Normal</option>
-              <option value="hidden">Hidden</option>
-              <option value="combination">Combination</option>
+              <option value={WordMode.NORMAL}>Normal</option>
+              <option value={WordMode.HIDDEN}>Hidden</option>
+              <option value={WordMode.COMBINATION}>Combination</option>
             </select>
           </label>
         </div>
@@ -70,8 +65,11 @@ export default function CreateRoom() {
           <input type="checkbox" checked={settings.isPrivate} onChange={(e) => update("isPrivate", e.target.checked)} />
           Private room (invite using a room code)
         </label>
-        <div className="backend-notice">Frontend demo: settings are stored in this browser. Server room creation is marked <b>BACKEND REQUIRED</b>.</div>
-        <button className="primary-setup-button" onClick={createRoom}>Create room &amp; open lobby</button>
+        {!connected && <p className="form-error" role="alert">Connecting to server… (server chal raha hai?)</p>}
+        {error && <p className="form-error" role="alert">{error}</p>}
+        <button className="primary-setup-button" onClick={handleCreate} disabled={!connected}>
+          Create room &amp; open lobby
+        </button>
       </section>
     </main>
   );

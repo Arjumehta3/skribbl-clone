@@ -12,7 +12,7 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/create-room" element={<CreateRoom />} />
       <Route path="/join-room" element={<JoinRoom />} />
-      <Route path="/lobby" element={<Lobby />} />
+      <Route path="/room/:roomId" element={<Lobby />} />
       <Route path="/game" element={<Game />} />
       <Route path="/game-over" element={<GameOver />} />
       <Route path="*" element={<Navigate to="/" replace />} />

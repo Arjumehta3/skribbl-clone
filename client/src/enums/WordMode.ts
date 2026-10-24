@@ -1,6 +1,6 @@
 export const WordMode = {
-  NORMAL: "normal",
-  HIDDEN: "hidden",
-  COMBINATION: "combination",
+  NORMAL: "NORMAL",
+  HIDDEN: "HIDDEN",
+  COMBINATION: "COMBINATION",
 } as const;
 export type WordMode = (typeof WordMode)[keyof typeof WordMode];

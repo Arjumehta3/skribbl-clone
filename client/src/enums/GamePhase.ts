@@ -1,8 +1,8 @@
 export const GamePhase = {
-  LOBBY: "lobby",
-  WORD_SELECTION: "word_selection",
-  DRAWING: "drawing",
-  ROUND_END: "round_end",
-  GAME_OVER: "game_over",
+  LOBBY: "LOBBY",
+  WORD_SELECTION: "WORD_SELECTION",
+  DRAWING: "DRAWING",
+  ROUND_END: "ROUND_END",
+  GAME_OVER: "GAME_OVER",
 } as const;
 export type GamePhase = (typeof GamePhase)[keyof typeof GamePhase];

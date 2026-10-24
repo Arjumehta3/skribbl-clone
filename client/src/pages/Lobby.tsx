@@ -1,531 +1,226 @@
-
 import { useEffect, useRef, useState } from "react";
-import type { FormEvent, PointerEvent } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useGame } from "../context/GameContext";
+import DoodleAvatar from "../components/DoodleAvatar";
+import { toAvatarIndex } from "../utils/avatar";
+import { GamePhase } from "../enums/GamePhase";
+import { WordMode } from "../enums/WordMode";
+import type { RoomSettings } from "../types";
+import "./RoomSetup.css";
 import "./Lobby.css";
 
-type Player = {
-  id: string;
-  name: string;
-  avatar: string;
-  score: number;
-  isYou?: boolean;
-};
-
-type ChatMessage = {
-  id: string;
-  name: string;
-  text: string;
-  type?: "system" | "guess" | "reaction";
-};
-
-const DEMO_PLAYERS: Player[] = [
-  { id: "p1", name: "deeps", avatar: "🥷", score: 0 },
-  { id: "p2", name: "Halocast", avatar: "🧟", score: 370 },
-  { id: "p3", name: "chuck", avatar: "🤓", score: 0 },
-  { id: "p4", name: "Seans didddy", avatar: "👹", score: 195 },
-  { id: "p5", name: "sun", avatar: "🤠", score: 235 },
-  { id: "p6", name: "KFC", avatar: "🥦", score: 260 },
-  { id: "p7", name: "Chancer", avatar: "👽", score: 120 },
-];
-
-const COLORS = [
-  "#171717", "#ffffff", "#e53935", "#ff8a00",
-  "#ffd600", "#55b84a", "#00bcd4", "#1684e8",
-  "#3f51b5", "#8e44ad", "#ff4081", "#795548",
-];
-
-function getStoredPlayer() {
-  const name = sessionStorage.getItem("playerName")?.trim();
-  const storedAvatar = sessionStorage.getItem("playerAvatar");
-  const avatarChoices = ["😀", "😎", "🤓", "🥷", "🤠", "👽", "🧟", "👹"];
-  const avatarIndex = Number(storedAvatar);
-
-  return {
-    name: name || "Guest",
-    avatar: storedAvatar !== null && Number.isInteger(avatarIndex) && storedAvatar !== ""
-      ? avatarChoices[((avatarIndex % avatarChoices.length) + avatarChoices.length) % avatarChoices.length]
-      : storedAvatar || "😊",
-  };
-}
-
-function createMessage(name: string, text: string, type?: ChatMessage["type"]): ChatMessage {
-  return {
-    id: `${Date.now()}-${Math.random()}`,
-    name,
-    text,
-    type,
-  };
-}
-
 export default function Lobby() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const drawingRef = useRef(false);
-  const lastPoint = useRef({ x: 0, y: 0 });
-  const undoStack = useRef<ImageData[]>([]);
+  const { roomId: urlRoomId } = useParams();
+  const navigate = useNavigate();
+  const {
+    connected, roomId, meId, players, settings, gameState, error,
+    joinRoom, leaveRoom, updateSettings, toggleReady, startGame, clearError,
+  } = useGame();
 
-  const [currentPlayer] = useState(getStoredPlayer);
-  const [players] = useState<Player[]>([
-    ...DEMO_PLAYERS,
-    {
-      id: "you",
-      name: currentPlayer.name,
-      avatar: currentPlayer.avatar,
-      score: 0,
-      isYou: true,
-    },
-  ]);
+  const [hasIdentity, setHasIdentity] = useState(Boolean(sessionStorage.getItem("playerName")));
+  const [nameInput, setNameInput] = useState("");
+  const [copied, setCopied] = useState<"" | "code" | "link">("");
+  const [draft, setDraft] = useState<Partial<RoomSettings>>({});
+  const autoJoinTried = useRef(false);
 
-  const roomSettings = (() => {
-    try {
-      return JSON.parse(sessionStorage.getItem("roomSettings") || "{}") as { rounds?: number; drawTime?: number; maxPlayers?: number };
-    } catch {
-      return {};
-    }
-  })();
-  const totalRounds = roomSettings.rounds ?? 3;
-  const drawTime = roomSettings.drawTime ?? 80;
-  const roomCode = sessionStorage.getItem("roomId") || "DEMO";
-  const [timeLeft, setTimeLeft] = useState(drawTime);
-  const [round, setRound] = useState(1);
-  const [word, setWord] = useState("");
-  const [choosingWord, setChoosingWord] = useState(true);
-  const [color, setColor] = useState("#171717");
-  const [brushSize, setBrushSize] = useState(6);
-  const [eraser, setEraser] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [soundOn, setSoundOn] = useState(true);
-  const [guess, setGuess] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    createMessage("System", "Welcome to the game!", "system"),
-    createMessage("System", "Choose a word to start drawing.", "system"),
-  ]);
-
+  // Invite link se aaya hai (/room/ABC123): naam pata ho to apne aap join karo
   useEffect(() => {
-    if (choosingWord) return;
+    if (!connected || roomId || !urlRoomId || !hasIdentity || autoJoinTried.current) return;
+    autoJoinTried.current = true;
+    joinRoom(urlRoomId);
+  }, [connected, roomId, urlRoomId, hasIdentity, joinRoom]);
 
-    const timerId = window.setInterval(() => {
-      setTimeLeft((current) => {
-        if (current <= 1) {
-          window.clearInterval(timerId);
-          setChoosingWord(true);
-          setWord("");
-          setRound((currentRound) => currentRound >= totalRounds ? 1 : currentRound + 1);
+  // Host ne game start kiya: server ne game_state bheja, ab game page kholo
+  useEffect(() => {
+    if (gameState && gameState.phase !== GamePhase.LOBBY) navigate("/game");
+  }, [gameState, navigate]);
 
-          setMessages((currentMessages) => [
-            ...currentMessages,
-            createMessage("System", "Round ended. Choose a new word!", "system"),
-          ]);
+  const me = players.find((p) => p.id === meId);
+  const isHost = me?.isHost === true;
+  const everyoneReady = players.every((p) => p.isHost || p.isReady);
+  const canStart = isHost && players.length >= 2 && everyoneReady;
 
-          return drawTime;
-        }
+  const inviteLink = `${window.location.origin}/room/${roomId ?? urlRoomId ?? ""}`;
 
-        return current - 1;
-      });
-    }, 1000);
-
-    return () => window.clearInterval(timerId);
-  }, [choosingWord, drawTime, totalRounds]);
-
-  const getCanvasPoint = (event: PointerEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current!;
-    const rect = canvas.getBoundingClientRect();
-
-    return {
-      x: ((event.clientX - rect.left) / rect.width) * canvas.width,
-      y: ((event.clientY - rect.top) / rect.height) * canvas.height,
-    };
-  };
-
-  const startDrawing = (event: PointerEvent<HTMLCanvasElement>) => {
-    if (choosingWord) return;
-
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-
-    if (!canvas || !context) return;
-
-    event.currentTarget.setPointerCapture(event.pointerId);
+  const copy = async (what: "code" | "link") => {
     try {
-      undoStack.current.push(context.getImageData(0, 0, canvas.width, canvas.height));
-      if (undoStack.current.length > 30) undoStack.current.shift();
+      await navigator.clipboard.writeText(what === "code" ? (roomId ?? "") : inviteLink);
+      setCopied(what);
+      window.setTimeout(() => setCopied(""), 1500);
     } catch {
-      // Canvas snapshot may be unavailable in restricted browser contexts.
-    }
-    drawingRef.current = true;
-    lastPoint.current = getCanvasPoint(event);
-
-    context.beginPath();
-    context.arc(
-      lastPoint.current.x,
-      lastPoint.current.y,
-      (eraser ? brushSize * 3 : brushSize) / 2,
-      0,
-      Math.PI * 2
-    );
-    context.fillStyle = eraser ? "#ffffff" : color;
-    context.fill();
-  };
-
-  const draw = (event: PointerEvent<HTMLCanvasElement>) => {
-    if (!drawingRef.current || choosingWord) return;
-
-    const context = canvasRef.current?.getContext("2d");
-    if (!context) return;
-
-    const point = getCanvasPoint(event);
-
-    context.beginPath();
-    context.moveTo(lastPoint.current.x, lastPoint.current.y);
-    context.lineTo(point.x, point.y);
-    context.strokeStyle = eraser ? "#ffffff" : color;
-    context.lineWidth = eraser ? brushSize * 3 : brushSize;
-    context.lineCap = "round";
-    context.lineJoin = "round";
-    context.globalAlpha = 0.9;
-    context.stroke();
-    context.globalAlpha = 1;
-
-    lastPoint.current = point;
-  };
-
-  const stopDrawing = () => {
-    drawingRef.current = false;
-  };
-
-  const clearCanvas = () => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-
-    if (canvas && context) {
-      try {
-        undoStack.current.push(context.getImageData(0, 0, canvas.width, canvas.height));
-      } catch {
-        // Ignore unavailable snapshots.
-      }
-      context.clearRect(0, 0, canvas.width, canvas.height);
+      // clipboard allowed nahi hai to kuch nahi
     }
   };
 
-  const undoDrawing = () => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    const previous = undoStack.current.pop();
-    if (canvas && context && previous) {
-      context.putImageData(previous, 0, 0);
-    }
+  const handleLeave = () => {
+    leaveRoom();
+    navigate("/");
   };
 
-  const chooseWord = (selectedWord: string) => {
-    setWord(selectedWord);
-    setTimeLeft(drawTime);
-    setChoosingWord(false);
-
-    setMessages((currentMessages) => [
-      ...currentMessages,
-      createMessage("System", `${currentPlayer.name} started drawing.`, "system"),
-    ]);
-  };
-
-  const sendGuess = (event: FormEvent<HTMLFormElement>) => {
+  const submitName = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    const message = guess.trim();
-    if (!message) return;
-
-    const isCorrect = !choosingWord && message.toLowerCase() === word.toLowerCase();
-    setMessages((currentMessages) => [
-      ...currentMessages,
-      createMessage(currentPlayer.name, isCorrect ? `🎉 ${message} — correct! (demo only)` : message, "guess"),
-    ]);
-
-    if (isCorrect) {
-      setMessages((currentMessages) => [
-        ...currentMessages,
-        createMessage("System", "Correct guess detected locally. Server-side scoring is BACKEND REQUIRED.", "system"),
-      ]);
-      setChoosingWord(true);
-      setWord("");
-      setRound((currentRound) => currentRound >= totalRounds ? 1 : currentRound + 1);
-      clearCanvas();
+    const clean = nameInput.trim();
+    if (!clean) return;
+    sessionStorage.setItem("playerName", clean);
+    if (sessionStorage.getItem("playerAvatar") === null) {
+      sessionStorage.setItem("playerAvatar", String(Math.floor(Math.random() * 8)));
     }
-
-    setGuess("");
+    setHasIdentity(true);
   };
 
-  const sendReaction = (reaction: "👍" | "👎") => {
-    setMessages((currentMessages) => [
-      ...currentMessages,
-      createMessage(currentPlayer.name, reaction, "reaction"),
-    ]);
+  // ---------- Room mein nahi hain abhi ----------
+  if (!roomId || !settings) {
+    return (
+      <main className="room-setup-page">
+        <section className="room-setup-card join-card">
+          <div className="setup-logo">✏️ skribbl</div>
+          {!hasIdentity ? (
+            <form className="name-form" onSubmit={submitName}>
+              <h1>Enter your name</h1>
+              <p className="setup-subtitle">You are joining room {urlRoomId}</p>
+              <input
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                placeholder="Your name"
+                maxLength={20}
+                autoFocus
+              />
+              <button className="primary-setup-button" type="submit">Join room</button>
+            </form>
+          ) : (
+            <>
+              <h1>{error ? "Could not join" : "Joining room…"}</h1>
+              {error ? (
+                <p className="form-error" role="alert">{error}</p>
+              ) : (
+                <p className="setup-subtitle">{connected ? `Room ${urlRoomId}` : "Connecting to server…"}</p>
+              )}
+              <button
+                className="primary-setup-button"
+                onClick={() => { clearError(); navigate("/"); }}
+              >
+                Back to Home
+              </button>
+            </>
+          )}
+        </section>
+      </main>
+    );
+  }
+
+  // ---------- Settings (host badal sakta hai) ----------
+  const view: RoomSettings = { ...settings, ...draft };
+
+  const commit = (key: keyof RoomSettings) => {
+    if (!isHost || draft[key] === undefined) return;
+    updateSettings({ [key]: draft[key] });
+    setDraft((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
   };
+
+  const slider = (key: "maxPlayers" | "rounds" | "drawTime" | "wordCount" | "hints", label: string, min: number, max: number, step = 1) => (
+    <div className="setting-row">
+      <span>{label}</span>
+      <span>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={view[key]}
+          disabled={!isHost}
+          aria-label={label}
+          onChange={(e) => setDraft((current) => ({ ...current, [key]: Number(e.target.value) }))}
+          onPointerUp={() => commit(key)}
+          onKeyUp={() => commit(key)}
+        />{" "}
+        <strong>{view[key]}</strong>
+      </span>
+    </div>
+  );
 
   return (
-    <main className="skribbl-game">
-      <header className="skribbl-brand">
-        <span className="brand-pencil" aria-hidden="true">✏️</span>
-        <span className="brand-name">skribbl</span>
-        <span className="brand-tagline">Free Multiplayer Drawing</span>
-        <span className="room-code-badge">Room: <b>{roomCode}</b></span>
-        <button className="leave-room-button" onClick={() => { window.location.href = "/"; }}>Leave</button>
-      </header>
-      <div className="frontend-demo-notice">
-        Frontend demo only — multiplayer sync, server timer, authoritative scoring and room validation are <b>BACKEND REQUIRED</b>.
-      </div>
+    <main className="room-setup-page">
+      <section className="room-setup-card lobby-card">
+        <div className="setup-logo">✏️ skribbl</div>
+        <h1>Game lobby</h1>
 
-      <section className="round-bar">
-        <div className="round-timer">
-          <span className="timer-symbol">◷</span>
-          <strong>{timeLeft}</strong>
-        </div>
-
-        <strong className="round-number">Round {round} of {totalRounds}</strong>
-
-        <div className="word-display">
-          <span>{choosingWord ? "CHOOSE A WORD" : "GUESS THIS"}</span>
-          <strong>
-            {choosingWord
-              ? "?"
-              : word.split("").map(() => "_").join(" ")}
-          </strong>
-        </div>
-
-        <button
-          className="settings-button"
-          title="Game settings"
-          aria-label="Open game settings"
-          onClick={() => setShowSettings((current) => !current)}
-        >
-          <svg viewBox="0 0 48 48" aria-hidden="true">
-            <path
-              d="M19 3h10l2 6 4 2 5-2 5 9-4 5v4l4 5-5 9-6-2-4 5H18l-2-6-4-2-5 2-4-9 4-5v-4l-4-5 5-9 6 2z"
-              fill="#666"
-              stroke="#191919"
-              strokeWidth="3"
-              strokeLinejoin="round"
-            />
-            <circle cx="24" cy="24" r="10" fill="#d5d5d5" stroke="#191919" strokeWidth="3" />
-            <circle cx="24" cy="24" r="4" fill="#444" stroke="#191919" strokeWidth="2" />
-          </svg>
-        </button>
-
-        {showSettings && (
-          <div className="game-settings-panel">
-            <div className="settings-panel-header">
-              <strong>Game settings</strong>
-              <button
-                onClick={() => setShowSettings(false)}
-                aria-label="Close settings"
-              >
-                ×
-              </button>
-            </div>
-
-            <label className="setting-row">
-              <span>Sound effects</span>
-              <input
-                type="checkbox"
-                checked={soundOn}
-                onChange={(event) => setSoundOn(event.target.checked)}
-              />
-            </label>
-
-            <button
-              className="clear-board-setting"
-              onClick={() => {
-                clearCanvas();
-                setShowSettings(false);
-              }}
-            >
-              Clear drawing
+        <div className="lobby-code-box">
+          <div>
+            <span className="code-label">Room code</span>
+            <span className="code-value">{roomId}</span>
+            <span className="link-value">{inviteLink}</span>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="copy-button" onClick={() => copy("code")}>
+              {copied === "code" ? "Copied!" : "Copy code"}
+            </button>
+            <button className="copy-button" onClick={() => copy("link")}>
+              {copied === "link" ? "Copied!" : "Copy invite link"}
             </button>
           </div>
-        )}
-      </section>
+        </div>
 
-      <section className="skribbl-layout">
-        <aside className="skribbl-players">
-          {players.map((player, index) => (
-            <div
-              className={`skribbl-player ${player.isYou ? "current-player" : ""}`}
-              key={player.id}
-            >
-              <span className="player-rank">#{index + 1}</span>
-
-              <div className="player-info">
-                <strong>{player.name}{player.isYou ? " (You)" : ""}</strong>
-                <span>{player.score} points</span>
-              </div>
-
-              <span className="player-face" role="img" aria-label={`${player.name} avatar`}>
-                {player.avatar}
-              </span>
-            </div>
-          ))}
-        </aside>
-
-        <section className="skribbl-board">
-          <div className="board-reactions">
-            <button
-              className="reaction-button thumbs-up"
-              title="Nice drawing!"
-              aria-label="Thumbs up"
-              onClick={() => sendReaction("👍")}
-            >
-              <svg viewBox="0 0 48 48" aria-hidden="true">
-                <path
-                  d="M15 21 24 7Q28 4 30 9L28 18H39Q44 19 42 25L38 39Q37 43 32 42H17L12 38V24Z"
-                  fill="#a7d66d"
-                  stroke="#454545"
-                  strokeWidth="2.5"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M5 21H15V42H5Z"
-                  fill="#a7d66d"
-                  stroke="#454545"
-                  strokeWidth="2.5"
-                />
-                <path d="M21 12 26 8" fill="none" stroke="#c6e89a" strokeWidth="2" />
-              </svg>
-            </button>
-
-            <button
-              className="reaction-button thumbs-down"
-              title="Thumbs down"
-              aria-label="Thumbs down"
-              onClick={() => sendReaction("👎")}
-            >
-              <svg viewBox="0 0 48 48" aria-hidden="true">
-                <path
-                  d="M15 27 24 41Q28 44 30 39L28 30H39Q44 29 42 23L38 9Q37 5 32 6H17L12 10V24Z"
-                  fill="#e98a8a"
-                  stroke="#454545"
-                  strokeWidth="2.5"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M5 6H15V27H5Z"
-                  fill="#e98a8a"
-                  stroke="#454545"
-                  strokeWidth="2.5"
-                />
-                <path d="M22 36 26 41" fill="none" stroke="#f4b2b2" strokeWidth="2" />
-              </svg>
-            </button>
-          </div>
-
-          <canvas
-            ref={canvasRef}
-            className={`skribbl-canvas ${choosingWord ? "canvas-disabled" : ""}`}
-            width={1000}
-            height={700}
-            onPointerDown={startDrawing}
-            onPointerMove={draw}
-            onPointerUp={stopDrawing}
-            onPointerCancel={stopDrawing}
-            onLostPointerCapture={stopDrawing}
-          />
-
-          {choosingWord && (
-            <div className="word-choice-overlay">
-              <div className="word-choice-card">
-                <span className="word-choice-pencil">✏️</span>
-                <h2>Choose a word to draw</h2>
-                <p>Pick one of these words to start the round.</p>
-
-                <div className="word-options">
-                  {["APPLE", "HOUSE", "RAINBOW"].map((item) => (
-                    <button key={item} onClick={() => chooseWord(item)}>
-                      {item}
-                    </button>
-                  ))}
+        <div className="lobby-columns">
+          <div className="lobby-panel">
+            <h2>Players ({players.length}/{view.maxPlayers})</h2>
+            {players.map((p) => (
+              <div className={`lobby-player ${p.id === meId ? "is-you" : ""}`} key={p.id}>
+                <div className="room-avatar">
+                  <DoodleAvatar index={toAvatarIndex(p.avatar)} />
                 </div>
-              </div>
-            </div>
-          )}
-
-          <div className="skribbl-tools">
-            <button
-              className={!eraser ? "selected-tool" : ""}
-              onClick={() => setEraser(false)}
-              title="Pencil"
-              aria-label="Pencil"
-            >
-              ✏️
-            </button>
-
-            <button
-              className={eraser ? "selected-tool" : ""}
-              onClick={() => setEraser(true)}
-              title="Eraser"
-              aria-label="Eraser"
-            >
-              🧽
-            </button>
-
-            <button onClick={undoDrawing} title="Undo last stroke" aria-label="Undo last stroke">
-              ↶
-            </button>
-
-            <button onClick={clearCanvas} title="Clear canvas" aria-label="Clear canvas">
-              🗑️
-            </button>
-
-            <label htmlFor="skribbl-brush">Size</label>
-            <input
-              id="skribbl-brush"
-              type="range"
-              min="2"
-              max="24"
-              value={brushSize}
-              onChange={(event) => setBrushSize(Number(event.target.value))}
-            />
-
-            <div className="skribbl-colors">
-              {COLORS.map((item) => (
-                <button
-                  key={item}
-                  aria-label={`Select color ${item}`}
-                  title={item}
-                  className={color === item && !eraser ? "selected-color" : ""}
-                  style={{ backgroundColor: item }}
-                  onClick={() => {
-                    setColor(item);
-                    setEraser(false);
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <aside className="skribbl-chat">
-          <div className="chat-feed" aria-live="polite">
-            {messages.map((message) => (
-              <div className={`skribbl-message ${message.type || ""}`} key={message.id}>
-                {message.type === "system" ? (
-                  <p className="system-message">{message.text}</p>
+                <span className="player-name">{p.name}{p.id === meId ? " (You)" : ""}</span>
+                {p.isHost ? (
+                  <span className="badge host">Host</span>
                 ) : (
-                  <>
-                    <strong>{message.name}</strong>
-                    <p>{message.text}</p>
-                  </>
+                  <span className={`badge ${p.isReady ? "ready" : "waiting"}`}>
+                    {p.isReady ? "Ready" : "Not ready"}
+                  </span>
                 )}
               </div>
             ))}
           </div>
 
-          <form className="skribbl-guess-form" onSubmit={sendGuess}>
-            <input
-              value={guess}
-              onChange={(event) => setGuess(event.target.value)}
-              placeholder="Type your guess here..."
-              aria-label="Type your guess"
-              maxLength={200}
-            />
-            <button type="submit" aria-label="Send message">➤</button>
-          </form>
-        </aside>
+          <div className="lobby-panel lobby-settings">
+            <h2>Settings {isHost ? "" : "(host only)"}</h2>
+            {slider("maxPlayers", "Max players", 2, 20)}
+            {slider("rounds", "Rounds", 2, 10)}
+            {slider("drawTime", "Draw time (s)", 15, 240, 15)}
+            {slider("wordCount", "Words per turn", 1, 5)}
+            {slider("hints", "Hints", 0, 5)}
+            <div className="setting-row">
+              <span>Word mode</span>
+              <select
+                value={view.wordMode}
+                disabled={!isHost}
+                onChange={(e) => updateSettings({ wordMode: e.target.value as RoomSettings["wordMode"] })}
+              >
+                <option value={WordMode.NORMAL}>Normal</option>
+                <option value={WordMode.HIDDEN}>Hidden</option>
+                <option value={WordMode.COMBINATION}>Combination</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {error && <p className="form-error" role="alert">{error}</p>}
+
+        <div className="lobby-actions">
+          <button className="secondary" onClick={handleLeave}>Leave</button>
+          {isHost ? (
+            <button onClick={startGame} disabled={!canStart}>Start game</button>
+          ) : (
+            <button onClick={toggleReady}>{me?.isReady ? "Not ready" : "I'm ready"}</button>
+          )}
+        </div>
+        {isHost && !canStart && (
+          <p className="lobby-hint">
+            {players.length < 2 ? "Need at least 2 players to start." : "Waiting for everyone to be ready."}
+          </p>
+        )}
       </section>
     </main>
   );

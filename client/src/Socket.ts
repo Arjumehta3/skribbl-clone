@@ -1,28 +1,11 @@
 import { io, type Socket } from "socket.io-client";
 
-/**
- * Socket.IO client factory.
- * Set VITE_SOCKET_URL in client/.env once the backend is available.
- * No connection is attempted when the variable is missing.
- */
-let socket: Socket | null = null;
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 
-export function getSocket(): Socket | null {
-  const url = import.meta.env.VITE_SOCKET_URL;
-  if (!url) return null;
+// Poore app mein sirf ek socket. autoConnect off hai, hum khud connect karenge.
+export const socket: Socket = io(SERVER_URL, { autoConnect: false });
 
-  if (!socket) {
-    socket = io(url, { autoConnect: false, transports: ["websocket", "polling"] });
-  }
+export function connectSocket(): Socket {
+  if (!socket.connected) socket.connect();
   return socket;
-}
-
-export function connectSocket(): Socket | null {
-  const client = getSocket();
-  if (client && !client.connected) client.connect();
-  return client;
-}
-
-export function disconnectSocket(): void {
-  socket?.disconnect();
 }
