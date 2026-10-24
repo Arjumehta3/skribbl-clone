@@ -1,17 +1,25 @@
+
 import type { PlayerDTO } from "../types/index.js";
 
 export class Player {
   public readonly id: string; // socket.id
   public name: string;
+  public avatar: string;
   public score: number = 0;
   public hasGuessed: boolean = false;
   public isHost: boolean = false;
   public isReady: boolean = false;
 
-  constructor(id: string, name: string, isHost: boolean = false) {
+  constructor(
+    id: string,
+    name: string,
+    isHost: boolean = false,
+    avatar: string = "0"
+  ) {
     this.id = id;
     this.name = name.trim().slice(0, 20); // max 20 characters
     this.isHost = isHost;
+    this.avatar = avatar;
   }
 
   addScore(points: number): void {
@@ -30,15 +38,16 @@ export class Player {
     this.isReady = false;
   }
 
-  // Client ko sirf safe data bhejo
+  // Client ko safe data bhejo
   toDTO(): PlayerDTO {
     return {
       id: this.id,
       name: this.name,
+      avatar: this.avatar,
       score: this.score,
       hasGuessed: this.hasGuessed,
       isHost: this.isHost,
-      isReady: this.isHost || this.isReady, // host hamesha ready maana jata hai
+      isReady: this.isHost || this.isReady,
     };
   }
 }

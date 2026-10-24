@@ -10,6 +10,7 @@ export class Room {
   public game: Game | null = null;
   private players: Map<string, Player> = new Map();
   private io: Server;
+  private autoStartTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(id: string, settings: RoomSettings, io: Server) {
     this.id = id;
@@ -90,10 +91,47 @@ export class Room {
     this.settings = newSettings;
   }
 
+  // Public (Quick Play) room: 2+ players hote hi game apne aap shuru ho jata hai
+  scheduleAutoStart(delayMs = 5000): void {
+    if (this.settings.isPrivate || this.autoStartTimer) return;
+    if (this.players.size < 2) return;
+    if (this.game && this.game.phase !== GamePhase.GAME_OVER) return;
+
+    this.broadcast("auto_start", { seconds: Math.round(delayMs / 1000) });
+    this.autoStartTimer = setTimeout(() => {
+      this.autoStartTimer = null;
+      if (this.players.size < 2) return;
+      if (this.game && this.game.phase !== GamePhase.GAME_OVER) return;
+      if (this.game) this.resetToLobby();
+      try {
+        this.startGame();
+      } catch {
+        // 2 se kam player bache to kuch nahi
+      }
+    }, delayMs);
+  }
+
+  cancelAutoStartIfNeeded(): void {
+    if (this.autoStartTimer && this.players.size < 2) {
+      clearTimeout(this.autoStartTimer);
+      this.autoStartTimer = null;
+    }
+  }
+
   resetToLobby(): void {
     this.game?.destroy();
     this.game = null;
     this.players.forEach((p) => p.resetForGame());
+    this.broadcast("room_reset", {
+      players: this.getPlayersDTO(),
+      settings: this.settings,
+    });
+  }
+
+  destroy(): void {
+    if (this.autoStartTimer) clearTimeout(this.autoStartTimer);
+    this.autoStartTimer = null;
+    this.game?.destroy();
   }
 
   // ---------- Broadcast ----------

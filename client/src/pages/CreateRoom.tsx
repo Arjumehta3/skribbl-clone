@@ -16,7 +16,7 @@ export default function CreateRoom() {
   const update = <K extends keyof RoomSettings>(key: K, value: RoomSettings[K]) =>
     setSettings((current) => ({ ...current, [key]: value }));
 
-  // Server ne room bana diya (room_joined aaya) to lobby kholo
+  
   useEffect(() => {
     if (roomId) navigate(`/room/${roomId}`);
   }, [roomId, navigate]);

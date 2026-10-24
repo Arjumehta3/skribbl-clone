@@ -8,10 +8,11 @@ import { registerGameHandlers } from "./handlers/gameHandlers.js";
 import { registerDrawHandlers } from "./handlers/drawHandlers.js";
 
 const PORT = Number(process.env.PORT) || 3000;
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+// CLIENT_URL set ho to sirf wahi (comma se alag kar sakte ho); warna dev mein sab allowed (phone LAN testing ke liye)
+const ORIGIN = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(",").map((u) => u.trim()) : true;
 
 const app = express();
-app.use(cors({ origin: CLIENT_URL }));
+app.use(cors({ origin: ORIGIN }));
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
@@ -19,7 +20,7 @@ app.get("/health", (_req, res) => {
 
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: CLIENT_URL },
+  cors: { origin: ORIGIN },
 });
 
 const rooms = new RoomManager(io);
@@ -40,6 +41,6 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });

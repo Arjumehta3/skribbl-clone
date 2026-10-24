@@ -29,4 +29,5 @@ export interface PlayerDTO {
   hasGuessed: boolean;
   isHost: boolean;
     isReady: boolean;
+    avatar: string;
 }

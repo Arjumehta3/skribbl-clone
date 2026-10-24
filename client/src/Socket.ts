@@ -1,6 +1,9 @@
 import { io, type Socket } from "socket.io-client";
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
+// .env mein VITE_SERVER_URL ho to wahi; warna isi host ka port 3000
+// (phone se http://<pc-ip>:5173 kholo to server bhi <pc-ip>:3000 par milega)
+const SERVER_URL =
+  import.meta.env.VITE_SERVER_URL || `${window.location.protocol}//${window.location.hostname}:3000`;
 
 // Poore app mein sirf ek socket. autoConnect off hai, hum khud connect karenge.
 export const socket: Socket = io(SERVER_URL, { autoConnect: false });

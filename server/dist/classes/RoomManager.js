@@ -28,7 +28,9 @@ export class RoomManager {
             wordCount: clamp(input.wordCount, LIMITS.wordCount.min, LIMITS.wordCount.max, d.wordCount),
             hints: clamp(input.hints, LIMITS.hints.min, LIMITS.hints.max, d.hints),
             wordMode,
-            isPrivate: typeof input.isPrivate === "boolean" ? input.isPrivate : d.isPrivate,
+            isPrivate: typeof input.isPrivate === "boolean"
+                ? input.isPrivate
+                : d.isPrivate,
         };
     }
     createRoom(settings) {
@@ -39,6 +41,17 @@ export class RoomManager {
         const room = new Room(code, this.sanitizeSettings(settings), this.io);
         this.rooms.set(code, room);
         return room;
+    }
+    // Quick Play ke liye suitable public room dhoondho
+    findPublicRoom() {
+        for (const room of this.rooms.values()) {
+            if (!room.settings.isPrivate &&
+                !room.isFull() &&
+                !room.game) {
+                return room;
+            }
+        }
+        return undefined;
     }
     getRoom(roomId) {
         return this.rooms.get(roomId.trim().toUpperCase());

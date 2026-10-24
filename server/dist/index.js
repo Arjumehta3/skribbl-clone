@@ -9,23 +9,34 @@ import { registerDrawHandlers } from "./handlers/drawHandlers.js";
 const PORT = Number(process.env.PORT) || 3000;
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 const app = express();
-app.use(cors({ origin: CLIENT_URL }));
+app.use(cors({
+    origin: CLIENT_URL,
+}));
 app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
 });
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: { origin: CLIENT_URL },
+    cors: {
+        origin: CLIENT_URL,
+    },
 });
 const rooms = new RoomManager(io);
 io.on("connection", (socket) => {
     console.log("Player connected:", socket.id);
+    // Register room-related events
     registerRoomHandlers(io, socket, rooms);
+    // Register game-related events
     registerGameHandlers(io, socket, rooms);
+    // Register drawing-related events
     registerDrawHandlers(io, socket, rooms);
+    // Connection test
     socket.on("ping", () => {
-        socket.emit("pong", { time: Date.now() });
+        socket.emit("pong", {
+            time: Date.now(),
+        });
     });
+    // Handle disconnection
     socket.on("disconnect", () => {
         console.log("Player disconnected:", socket.id);
     });

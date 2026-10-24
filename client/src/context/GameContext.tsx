@@ -3,11 +3,17 @@ import type { ReactNode } from "react";
 import { connectSocket, socket } from "../Socket";
 import { SocketEvent } from "../enums/SocketEvent";
 import type {
+  ChatItem,
+  ChatMessageData,
+  GameOverData,
   GameState,
+  GuessResultData,
   PlayerDTO,
   RoomJoinedData,
   RoomSettings,
+  RoundEndData,
   RoundStartData,
+  Stroke,
 } from "../types";
 
 interface GameContextValue {
@@ -19,6 +25,14 @@ interface GameContextValue {
   gameState: GameState | null;
   roundStart: RoundStartData | null;
   error: string | null;
+  roundEnd: RoundEndData | null;
+  gameOver: GameOverData | null;
+  chat: ChatItem[];
+  canvasStrokes: Stroke[];
+  autoStartIn: number | null;
+  quickPlay: () => void;
+  playAgain: () => void;
+  sendGuess: (text: string) => void;
   createRoom: (settings: RoomSettings) => void;
   joinRoom: (roomId: string) => void;
   leaveRoom: () => void;
@@ -47,6 +61,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [roundStart, setRoundStart] = useState<RoundStartData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [roundEnd, setRoundEnd] = useState<RoundEndData | null>(null);
+  const [gameOver, setGameOver] = useState<GameOverData | null>(null);
+  const [chat, setChat] = useState<ChatItem[]>([]);
+  const [canvasStrokes, setCanvasStrokes] = useState<Stroke[]>([]);
+  const [autoStartIn, setAutoStartIn] = useState<number | null>(null);
+
+  const addChat = useCallback((item: Omit<ChatItem, "id">) => {
+    setChat((current) =>
+      [...current, { ...item, id: `${Date.now()}-${Math.random()}` }].slice(-100)
+    );
+  }, []);
 
   // Room chhodne par saara room ka data saaf
   const resetRoom = useCallback(() => {
@@ -56,6 +81,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setSettings(null);
     setGameState(null);
     setRoundStart(null);
+    setRoundEnd(null);
+    setGameOver(null);
+    setChat([]);
+    setCanvasStrokes([]);
+    setAutoStartIn(null);
   }, []);
 
   // Server ke saare events yahin sune jate hain, taaki page badalne par koi event miss na ho
@@ -73,6 +103,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
       setSettings(data.settings);
       setGameState(null);
       setRoundStart(null);
+      setRoundEnd(null);
+      setGameOver(null);
+      setChat([]);
+      setCanvasStrokes([]);
+      setAutoStartIn(null);
       setError(null);
     };
     const onPlayerList = (data: { players: PlayerDTO[] }) => setPlayers(data.players);
@@ -82,9 +117,47 @@ export function GameProvider({ children }: { children: ReactNode }) {
       setSettings(data.settings);
       setGameState(null);
       setRoundStart(null);
+      setRoundEnd(null);
+      setGameOver(null);
+      setChat([]);
+      setCanvasStrokes([]);
     };
     const onGameState = (data: GameState) => setGameState(data);
-    const onRoundStart = (data: RoundStartData) => setRoundStart(data);
+    const onRoundStart = (data: RoundStartData) => {
+      setRoundStart(data);
+      setRoundEnd(null);
+      setGameOver(null);
+      setAutoStartIn(null);
+      setCanvasStrokes([]);
+      setPlayers((current) => current.map((p) => ({ ...p, hasGuessed: false })));
+    };
+    const onTimer = (data: { timeLeft: number }) =>
+      setGameState((current) => (current ? { ...current, timeLeft: data.timeLeft } : current));
+    const onHint = (data: { maskedWord: string }) =>
+      setGameState((current) => (current ? { ...current, maskedWord: data.maskedWord } : current));
+    const onRoundEnd = (data: RoundEndData) => {
+      setRoundEnd(data);
+      setPlayers(data.scores);
+      addChat({ kind: "system", text: `The word was "${data.word}"` });
+    };
+    const onGameOver = (data: GameOverData) => {
+      setGameOver(data);
+      setRoundEnd(null);
+    };
+    const onGuessResult = (data: GuessResultData) => {
+      if (data.correct) {
+        setPlayers((current) =>
+          current.map((p) => (p.id === data.playerId ? { ...p, hasGuessed: true } : p))
+        );
+        addChat({ kind: "correct", playerName: data.playerName, text: `${data.playerName} guessed the word! (+${data.points})` });
+      } else if (data.close) {
+        addChat({ kind: "close", text: "That was close!" });
+      }
+    };
+    const onChatMessage = (data: ChatMessageData) =>
+      addChat({ kind: "chat", playerName: data.playerName, text: data.text });
+    const onCanvasState = (data: { strokes: Stroke[] }) => setCanvasStrokes(data.strokes ?? []);
+    const onAutoStart = (data: { seconds: number }) => setAutoStartIn(data.seconds);
     const onError = (data: { message: string }) => setError(data.message);
 
     socket.on("connect", onConnect);
@@ -97,6 +170,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     socket.on(SocketEvent.ROOM_RESET, onRoomReset);
     socket.on(SocketEvent.GAME_STATE, onGameState);
     socket.on(SocketEvent.ROUND_START, onRoundStart);
+    socket.on(SocketEvent.TIMER_TICK, onTimer);
+    socket.on(SocketEvent.HINT_UPDATE, onHint);
+    socket.on(SocketEvent.ROUND_END, onRoundEnd);
+    socket.on(SocketEvent.GAME_OVER, onGameOver);
+    socket.on(SocketEvent.GUESS_RESULT, onGuessResult);
+    socket.on(SocketEvent.CHAT_MESSAGE, onChatMessage);
+    socket.on(SocketEvent.CANVAS_STATE, onCanvasState);
+    socket.on(SocketEvent.AUTO_START, onAutoStart);
     socket.on(SocketEvent.ERROR, onError);
 
     connectSocket();
@@ -112,11 +193,34 @@ export function GameProvider({ children }: { children: ReactNode }) {
       socket.off(SocketEvent.ROOM_RESET, onRoomReset);
       socket.off(SocketEvent.GAME_STATE, onGameState);
       socket.off(SocketEvent.ROUND_START, onRoundStart);
+      socket.off(SocketEvent.TIMER_TICK, onTimer);
+      socket.off(SocketEvent.HINT_UPDATE, onHint);
+      socket.off(SocketEvent.ROUND_END, onRoundEnd);
+      socket.off(SocketEvent.GAME_OVER, onGameOver);
+      socket.off(SocketEvent.GUESS_RESULT, onGuessResult);
+      socket.off(SocketEvent.CHAT_MESSAGE, onChatMessage);
+      socket.off(SocketEvent.CANVAS_STATE, onCanvasState);
+      socket.off(SocketEvent.AUTO_START, onAutoStart);
       socket.off(SocketEvent.ERROR, onError);
     };
-  }, [resetRoom]);
+  }, [resetRoom, addChat]);
 
   // ---------- Actions (client -> server) ----------
+
+  // Play button: random public room + random players (server dhoondhta hai ya banata hai)
+  const quickPlay = useCallback(() => {
+    const { name, avatar } = getIdentity();
+    setError(null);
+    socket.emit(SocketEvent.QUICK_PLAY, { playerName: name, avatar });
+  }, []);
+
+  const playAgain = useCallback(() => {
+    socket.emit(SocketEvent.PLAY_AGAIN);
+  }, []);
+
+  const sendGuess = useCallback((text: string) => {
+    socket.emit(SocketEvent.GUESS, { text });
+  }, []);
 
   const createRoom = useCallback((roomSettings: RoomSettings) => {
     const { name, avatar } = getIdentity();
@@ -159,6 +263,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
       gameState,
       roundStart,
       error,
+      roundEnd,
+      gameOver,
+      chat,
+      canvasStrokes,
+      autoStartIn,
+      quickPlay,
+      playAgain,
+      sendGuess,
       createRoom,
       joinRoom,
       leaveRoom,
@@ -169,6 +281,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }),
     [
       connected, roomId, meId, players, settings, gameState, roundStart, error,
+      roundEnd, gameOver, chat, canvasStrokes, autoStartIn, quickPlay, playAgain, sendGuess,
       createRoom, joinRoom, leaveRoom, updateSettings, toggleReady, startGame, clearError,
     ]
   );

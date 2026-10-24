@@ -122,7 +122,8 @@ function HowToPlay() {
 
 export default function Home() {
   const navigate = useNavigate();
-  const { leaveRoom } = useGame();
+  const { leaveRoom, quickPlay, connected, roomId, error, clearError } = useGame();
+  const [playing, setPlaying] = useState(false);
 
   // Home par aaye to kisi purane room se bahar nikal jao
   useEffect(() => {
@@ -152,6 +153,16 @@ export default function Home() {
     });
   };
 
+  // Server ne random public room de diya (room_joined aaya) to lobby kholo
+  useEffect(() => {
+    if (playing && roomId) navigate(`/room/${roomId}`);
+  }, [playing, roomId, navigate]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (error) setPlaying(false);
+  }, [error]);
+
   const handlePlay = () => {
     const finalPlayerName =
       playerName.trim() ||
@@ -159,8 +170,11 @@ export default function Home() {
 
     sessionStorage.setItem("playerName", finalPlayerName);
     sessionStorage.setItem("playerAvatar", String(avatarIndex));
+    sessionStorage.setItem("selectedLanguage", language);
 
-    navigate("/join-room");
+    clearError();
+    setPlaying(true);
+    quickPlay();
   };
 
   const handleCreateRoom = () => {
@@ -279,9 +293,16 @@ export default function Home() {
               type="button"
               className="play-button"
               onClick={handlePlay}
+              disabled={!connected || playing}
             >
-              ▶ Play!
+              {playing ? "Finding a room…" : connected ? "▶ Play!" : "Connecting…"}
             </button>
+
+            {error && !playing && (
+              <p className="form-error" role="alert" style={{ color: "#c62828", margin: "6px 0 0" }}>
+                {error}
+              </p>
+            )}
 
             <button
               type="button"

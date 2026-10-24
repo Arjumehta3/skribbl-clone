@@ -2,6 +2,7 @@ export const SocketEvent = {
   // Room and lobby
   CREATE_ROOM: "create_room",
   JOIN_ROOM: "join_room",
+  QUICK_PLAY: "quick_play",
   ROOM_JOINED: "room_joined",
   PLAYER_JOINED: "player_joined",
   PLAYER_LEFT: "player_left",
@@ -13,6 +14,7 @@ export const SocketEvent = {
   PLAYERS_UPDATED: "players_updated",
   PLAY_AGAIN: "play_again",
   ROOM_RESET: "room_reset",
+  AUTO_START: "auto_start",
 
   // Game state
   GAME_STATE: "game_state",

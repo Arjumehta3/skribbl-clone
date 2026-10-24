@@ -184,3 +184,50 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- Doodle background (card ke bahar; card/canvas opaque hain isliye unpe nahi dikhta) ---- */
+.room-setup-page {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Cg fill='none' stroke='%23174688' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' opacity='.8'%3E%3Cpath d='M25 18l20 20-10 10-20-20z M25 18l10 30'/%3E%3Cpath d='M135 18l10-9 10 9 14-2-5 13 5 12-15-4-10 8-1-13-13-7z'/%3E%3Cpath d='M28 100c-15-12-5-28 6-20l7 7 7-7c11-8 21 8 6 20l-13 12z M41 80v-9'/%3E%3Cpath d='M145 82l18-10 18 10-18 10z M145 82v13l18 10 18-10V82 M163 92v13'/%3E%3Cpath d='M30 170q14-16 28 0-14 16-28 0z M58 170l12-9v18z M37 167v6'/%3E%3Cpath d='M130 145l10-14 10 14-3 18h-14z M140 131v-8l7-5'/%3E%3Cpath d='M175 165q12-15 24 0-12 15-24 0z M199 165l9-8v16z'/%3E%3Cpath d='M85 200l8-13 8 13-8 13z M93 187v-7'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 220px 220px;
+  animation: doodleDrift 60s linear infinite;
+}
+@keyframes doodleDrift { to { background-position: 220px 220px; } }
+
+/* ---- Interactive feel ---- */
+@keyframes popIn { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
+@keyframes wobble { 25% { transform: rotate(-8deg) scale(1.08); } 75% { transform: rotate(8deg) scale(1.08); } }
+
+.room-setup-card { animation: popIn .35s ease-out; }
+.lobby-player { animation: slideIn .3s ease-out; transition: transform .15s ease, box-shadow .15s ease; }
+.lobby-player:hover { transform: translateX(4px); box-shadow: 0 3px 10px #0002; }
+.room-avatar:hover { animation: wobble .5s ease; }
+.badge.ready { animation: popIn .25s ease-out; }
+
+.primary-setup-button, .copy-button, .lobby-actions button,
+.play-button, .create-room-button, .join-room-button, .random-avatar {
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+.primary-setup-button:not(:disabled):hover, .copy-button:hover, .lobby-actions button:not(:disabled):hover,
+.play-button:not(:disabled):hover, .create-room-button:hover, .join-room-button:hover, .random-avatar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px #0003;
+  filter: brightness(1.06);
+}
+.primary-setup-button:not(:disabled):active, .copy-button:active, .lobby-actions button:not(:disabled):active,
+.play-button:not(:disabled):active, .create-room-button:active, .join-room-button:active, .random-avatar:active {
+  transform: translateY(1px) scale(.97);
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .room-setup-page, .room-setup-card, .lobby-player { animation: none; }
+}
+
+
+/* ---- Lobby settings button + panel ---- */
+.lobby-settings-anchor { position: absolute; top: 12px; right: 12px; z-index: 30; }
+.lobby-gear { width: 42px; height: 42px; border: 2px solid #174784; border-radius: 50%; background: #fff; font-size: 22px; cursor: pointer; transition: transform .3s ease, box-shadow .15s ease; }
+.lobby-gear:hover { transform: rotate(90deg) scale(1.08); box-shadow: 0 4px 10px #0003; }
+.lobby-settings-anchor .game-settings-panel { top: calc(100% + 6px); right: 0; }

@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useGame } from "../context/GameContext";
 import DoodleAvatar from "../components/DoodleAvatar";
 import { toAvatarIndex } from "../utils/avatar";
+import { usePrefs } from "../utils/usePrefs";
+import SettingsPanel from "../components/SettingsPanel";
 import { GamePhase } from "../enums/GamePhase";
 import { WordMode } from "../enums/WordMode";
 import type { RoomSettings } from "../types";
@@ -13,7 +15,7 @@ export default function Lobby() {
   const { roomId: urlRoomId } = useParams();
   const navigate = useNavigate();
   const {
-    connected, roomId, meId, players, settings, gameState, error,
+    connected, roomId, meId, players, settings, gameState, error, autoStartIn,
     joinRoom, leaveRoom, updateSettings, toggleReady, startGame, clearError,
   } = useGame();
 
@@ -22,6 +24,8 @@ export default function Lobby() {
   const [copied, setCopied] = useState<"" | "code" | "link">("");
   const [draft, setDraft] = useState<Partial<RoomSettings>>({});
   const autoJoinTried = useRef(false);
+  const [prefs, setPrefs] = usePrefs();
+  const [showSettings, setShowSettings] = useState(false);
 
   // Invite link se aaya hai (/room/ABC123): naam pata ho to apne aap join karo
   useEffect(() => {
@@ -39,6 +43,7 @@ export default function Lobby() {
   const isHost = me?.isHost === true;
   const everyoneReady = players.every((p) => p.isHost || p.isReady);
   const canStart = isHost && players.length >= 2 && everyoneReady;
+  const isPublic = settings ? !settings.isPrivate : false; // Quick Play room: game apne aap shuru hota hai
 
   const inviteLink = `${window.location.origin}/room/${roomId ?? urlRoomId ?? ""}`;
 
@@ -131,7 +136,7 @@ export default function Lobby() {
           max={max}
           step={step}
           value={view[key]}
-          disabled={!isHost}
+          disabled={!isHost || isPublic}
           aria-label={label}
           onChange={(e) => setDraft((current) => ({ ...current, [key]: Number(e.target.value) }))}
           onPointerUp={() => commit(key)}
@@ -145,6 +150,19 @@ export default function Lobby() {
   return (
     <main className="room-setup-page">
       <section className="room-setup-card lobby-card">
+        <div className="lobby-settings-anchor">
+          <button
+            className="lobby-gear"
+            onClick={() => setShowSettings((v) => !v)}
+            aria-label="Open settings"
+            title="Settings"
+          >
+            ⚙️
+          </button>
+          {showSettings && (
+            <SettingsPanel prefs={prefs} setPrefs={setPrefs} onClose={() => setShowSettings(false)} />
+          )}
+        </div>
         <div className="setup-logo">✏️ skribbl</div>
         <h1>Game lobby</h1>
 
@@ -195,7 +213,7 @@ export default function Lobby() {
               <span>Word mode</span>
               <select
                 value={view.wordMode}
-                disabled={!isHost}
+                disabled={!isHost || isPublic}
                 onChange={(e) => updateSettings({ wordMode: e.target.value as RoomSettings["wordMode"] })}
               >
                 <option value={WordMode.NORMAL}>Normal</option>
@@ -210,13 +228,22 @@ export default function Lobby() {
 
         <div className="lobby-actions">
           <button className="secondary" onClick={handleLeave}>Leave</button>
-          {isHost ? (
+          {isPublic ? null : isHost ? (
             <button onClick={startGame} disabled={!canStart}>Start game</button>
           ) : (
             <button onClick={toggleReady}>{me?.isReady ? "Not ready" : "I'm ready"}</button>
           )}
         </div>
-        {isHost && !canStart && (
+        {isPublic && (
+          <p className="lobby-hint">
+            {players.length < 2
+              ? "Waiting for other players… game starts automatically when someone joins."
+              : autoStartIn
+                ? `Game starting in ${autoStartIn} seconds…`
+                : "Game is about to start…"}
+          </p>
+        )}
+        {!isPublic && isHost && !canStart && (
           <p className="lobby-hint">
             {players.length < 2 ? "Need at least 2 players to start." : "Waiting for everyone to be ready."}
           </p>

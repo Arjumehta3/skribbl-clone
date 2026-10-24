@@ -2,6 +2,7 @@ export var SocketEvent;
 (function (SocketEvent) {
     SocketEvent["CREATE_ROOM"] = "create_room";
     SocketEvent["JOIN_ROOM"] = "join_room";
+    SocketEvent["QUICK_PLAY"] = "quick_play";
     SocketEvent["ROOM_JOINED"] = "room_joined";
     SocketEvent["PLAYER_JOINED"] = "player_joined";
     SocketEvent["PLAYER_LEFT"] = "player_left";

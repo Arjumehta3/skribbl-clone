@@ -638,3 +638,64 @@
 .leave-room-button { margin-left: 8px; padding: 6px 10px; border: 1px solid #ffffff70; border-radius: 5px; background: #ffffff18; color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; }
 .frontend-demo-notice { max-width: 1500px; margin: 0 auto 6px; padding: 7px 10px; border: 1px solid #f1d18a; border-radius: 4px; background: #fff7e5; color: #72551d; font-size: 12px; text-align: center; }
 @media (max-width: 560px) { .room-code-badge { margin-left: auto; font-size: 10px; padding: 4px; } .leave-room-button { margin-left: 3px; padding: 4px; } .frontend-demo-notice { font-size: 10px; } }
+
+/* ---- Phone par drawing / tools ---- */
+.skribbl-board { position: relative; }
+.skribbl-game { overscroll-behavior: none; }
+
+@media (pointer: coarse) {
+  .skribbl-tools > button { width: 42px; height: 42px; font-size: 18px; }
+  .skribbl-colors button { width: 30px; height: 30px; }
+  .skribbl-tools input[type="range"] { width: 90px; }
+  .skribbl-colors { gap: 8px; }
+}
+
+@media (max-width: 560px) {
+  /* Canvas sabse upar, players list uske neeche */
+  .skribbl-board { order: -1; min-height: 0; }
+  .skribbl-players { order: 1; }
+  .skribbl-chat { order: 2; min-height: 220px; }
+  .skribbl-colors { justify-content: center; flex-basis: 100%; }
+  .word-choice-card { padding: 16px 10px; }
+  .word-options button { padding: 12px 14px; }
+}
+
+/* ---- In-game settings panel ---- */
+.game-settings-panel.wide-settings { width: min(380px, 92vw); max-height: 75vh; overflow-y: auto; animation: popIn .2s ease-out; }
+.settings-title { margin: 12px 0 6px; font-size: 16px; color: #192b58; }
+.settings-title-row { display: flex; align-items: center; justify-content: space-between; }
+.volume-slider { width: 100%; accent-color: #2865b8; }
+.reset-hotkeys { padding: 4px 12px; border: 0; border-radius: 5px; background: #7b3fd0; color: #fff; font-weight: 800; cursor: pointer; }
+.hotkey-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.hotkey-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; font-weight: 700; }
+.hotkey-grid input { width: 100%; padding: 8px 0; border: 2px solid #b5c9e8; border-radius: 5px; text-align: center; font-weight: 800; cursor: pointer; }
+.hotkey-grid input:focus { border-color: #2865b8; background: #eaf3ff; }
+.settings-note { margin: 6px 0 0; color: #667795; font-size: 11px; }
+.settings-select { display: flex; flex-direction: column; gap: 3px; margin-top: 8px; font-size: 13px; font-weight: 700; }
+.settings-select select { padding: 8px; border: 2px solid #b5c9e8; border-radius: 5px; background: #fff; }
+
+/* ---- Chat input upar ---- */
+.skribbl-chat.chat-input-top .skribbl-guess-form { order: -1; }
+
+/* ---- Chat bubbles on canvas ---- */
+.chat-bubbles { position: absolute; left: 10px; bottom: 70px; z-index: 4; display: flex; flex-direction: column; gap: 5px; max-width: 70%; pointer-events: none; }
+.chat-bubble { padding: 6px 10px; border-radius: 14px 14px 14px 3px; background: #ffffffe6; box-shadow: 0 2px 8px #0003; color: #192b58; font-size: 13px; animation: bubbleIn .25s ease-out; }
+@keyframes bubbleIn { from { opacity: 0; transform: translateY(10px) scale(.9); } to { opacity: 1; transform: none; } }
+
+/* ---- Game interactivity ---- */
+.skribbl-player { transition: background .3s ease, transform .15s ease; }
+.skribbl-player:hover { transform: translateX(3px); }
+.skribbl-player.guessed { background: #e3f8e3; animation: guessedPulse .6s ease-out; }
+.skribbl-player.drawing-now { box-shadow: inset 4px 0 0 #ff8a00; }
+@keyframes guessedPulse { 0% { transform: scale(1.04); } 100% { transform: none; } }
+.round-timer.urgent { animation: urgentPulse .8s ease-in-out infinite; border-color: #e53935; }
+.round-timer.urgent strong { color: #e53935; }
+@keyframes urgentPulse { 50% { transform: scale(1.14); } }
+.skribbl-message { animation: slideIn .2s ease-out; }
+.word-choice-card { animation: popIn .3s ease-out; }
+.word-options button:active { transform: scale(.95); }
+.skribbl-tools > button { transition: transform .12s ease, background .15s ease; }
+.skribbl-tools > button:active { transform: scale(.88); }
+.skribbl-colors button { transition: transform .12s ease; }
+.skribbl-colors button:hover { transform: scale(1.25); }
+@media (prefers-reduced-motion: reduce) { .round-timer.urgent, .skribbl-player.guessed, .chat-bubble { animation: none; } }
