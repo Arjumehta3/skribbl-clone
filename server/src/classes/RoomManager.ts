@@ -3,10 +3,10 @@ import type { Server } from "socket.io";
 import { Room } from "./Room.js";
 import { Player } from "./Player.js";
 import { generateRoomCode } from "../utils/roomCode.js";
-import { DEFAULT_SETTINGS, LIMITS } from "../config.js";
+import { DEFAULT_SETTINGS, LANGUAGES, LIMITS } from "../config.js";
 import { GamePhase } from "../enums/GamePhase.js";
 import { WordMode } from "../enums/WordMode.js";
-import type { RoomSettings } from "../types/index.js";
+import type { Language, RoomSettings } from "../types/index.js";
 
 function clamp(
   value: unknown,
@@ -38,6 +38,10 @@ export class RoomManager {
     )
       ? (input.wordMode as WordMode)
       : d.wordMode;
+
+    const language: Language = LANGUAGES.includes(input.language as Language)
+      ? (input.language as Language)
+      : d.language;
 
     return {
       maxPlayers: clamp(
@@ -75,6 +79,7 @@ export class RoomManager {
         typeof input.isPrivate === "boolean"
           ? input.isPrivate
           : d.isPrivate,
+      language,
     };
   }
 
@@ -97,11 +102,14 @@ export class RoomManager {
   }
 
   // Quick Play ke liye suitable public room dhoondho
-  findPublicRoom(): Room | undefined {
+  // Same language wale room ko pehle; jis room se ban hai wo skip
+  findPublicRoom(language: Language = "English", playerName = ""): Room | undefined {
     let running: Room | undefined;
 
     for (const room of this.rooms.values()) {
       if (room.settings.isPrivate || room.isFull()) continue;
+      if (room.settings.language !== language) continue;
+      if (room.isBanned(playerName)) continue;
       if (!room.game || room.game.phase === GamePhase.GAME_OVER) return room; // lobby wala pehle
       running ??= room; // warna chalta hua game join karwa do
     }

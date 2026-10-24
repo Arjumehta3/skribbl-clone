@@ -40,6 +40,13 @@ export const SocketEvent = {
   CHAT: "chat",
   CHAT_MESSAGE: "chat_message",
 
+  // Moderation
+  KICK_PLAYER: "kick_player",
+  BAN_PLAYER: "ban_player",
+  VOTE_KICK: "vote_kick",
+  KICKED: "kicked",
+  SYSTEM_MESSAGE: "system_message",
+
   // Errors
   ERROR: "error",
 } as const;

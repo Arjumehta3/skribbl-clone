@@ -9,6 +9,7 @@ import DoodleAvatar from "../components/DoodleAvatar";
 import { toAvatarIndex } from "../utils/avatar";
 import { usePrefs } from "../utils/usePrefs";
 import SettingsPanel from "../components/SettingsPanel";
+import ModerationButtons from "../components/ModerationButtons";
 import { playSound } from "../utils/sound";
 import type { DrawData, Point, Stroke } from "../types";
 import "./RoomLobby.css";
@@ -153,6 +154,27 @@ export default function Game() {
       socket.off(SocketEvent.DRAW_DATA, onDraw);
       socket.off(SocketEvent.CANVAS_CLEAR, onClear);
       socket.off(SocketEvent.DRAW_UNDO, onUndo);
+    };
+  }, []);
+
+  // Ungli se draw karte waqt page na hile. Ye sirf asli touch events par chalta hai,
+  // isliye touchpad / mouse wheel ka scroll canvas ke upar bhi chalta rehta hai.
+  const canDrawRef = useRef(false);
+  useEffect(() => {
+    canDrawRef.current = canDrawNow;
+  }, [canDrawNow]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const block = (e: TouchEvent) => {
+      if (canDrawRef.current && e.cancelable) e.preventDefault();
+    };
+    canvas.addEventListener("touchstart", block, { passive: false });
+    canvas.addEventListener("touchmove", block, { passive: false });
+    return () => {
+      canvas.removeEventListener("touchstart", block);
+      canvas.removeEventListener("touchmove", block);
     };
   }, []);
 
@@ -422,6 +444,7 @@ export default function Game() {
                   {player.hasGuessed ? " ✅" : ""}
                 </strong>
                 <span>{player.score} points</span>
+                <ModerationButtons playerId={player.id} playerName={player.name} />
               </div>
 
               <span className="player-face" role="img" aria-label={`${player.name} avatar`}>
@@ -454,7 +477,7 @@ export default function Game() {
             className={`skribbl-canvas ${canDrawNow ? "" : "canvas-disabled"}`}
             width={CANVAS_W}
             height={CANVAS_H}
-            style={{ aspectRatio: `${CANVAS_W} / ${CANVAS_H}`, flex: "none", height: "auto", touchAction: "none", userSelect: "none", WebkitUserSelect: "none" }}
+            style={{ aspectRatio: `${CANVAS_W} / ${CANVAS_H}`, flex: "none", height: "auto", userSelect: "none", WebkitUserSelect: "none" }}
             onPointerDown={startDrawing}
             onPointerMove={draw}
             onPointerUp={stopDrawing}
@@ -609,6 +632,8 @@ export default function Game() {
 
           <form className="skribbl-guess-form" onSubmit={submitText}>
             <input
+              id="guess-input"
+              name="guess"
               value={text}
               onChange={(event) => setText(event.target.value)}
               placeholder={placeholder}

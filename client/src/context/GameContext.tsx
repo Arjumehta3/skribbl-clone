@@ -4,6 +4,7 @@ import { connectSocket, socket } from "../Socket";
 import { SocketEvent } from "../enums/SocketEvent";
 import type {
   ChatItem,
+  Language,
   ChatMessageData,
   GameOverData,
   GameState,
@@ -31,6 +32,9 @@ interface GameContextValue {
   canvasStrokes: Stroke[];
   autoStartIn: number | null;
   quickPlay: () => void;
+  kickPlayer: (playerId: string) => void;
+  banPlayer: (playerId: string) => void;
+  voteKick: (playerId: string) => void;
   playAgain: () => void;
   sendGuess: (text: string) => void;
   createRoom: (settings: RoomSettings) => void;
@@ -49,6 +53,7 @@ function getIdentity() {
   return {
     name: sessionStorage.getItem("playerName") || "Guest",
     avatar: sessionStorage.getItem("playerAvatar") || "0",
+    language: (sessionStorage.getItem("selectedLanguage") || "English") as Language,
   };
 }
 
@@ -159,6 +164,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const onCanvasState = (data: { strokes: Stroke[] }) => setCanvasStrokes(data.strokes ?? []);
     const onAutoStart = (data: { seconds: number }) => setAutoStartIn(data.seconds);
     const onError = (data: { message: string }) => setError(data.message);
+    // Host ne kick/ban kiya: room se bahar, Home par reason dikhega
+    const onKicked = (data: { message: string }) => {
+      resetRoom();
+      setError(data.message);
+    };
+    const onSystemMessage = (data: { text: string }) => addChat({ kind: "system", text: data.text });
 
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
@@ -178,6 +189,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     socket.on(SocketEvent.CHAT_MESSAGE, onChatMessage);
     socket.on(SocketEvent.CANVAS_STATE, onCanvasState);
     socket.on(SocketEvent.AUTO_START, onAutoStart);
+    socket.on(SocketEvent.KICKED, onKicked);
+    socket.on(SocketEvent.SYSTEM_MESSAGE, onSystemMessage);
     socket.on(SocketEvent.ERROR, onError);
 
     connectSocket();
@@ -201,6 +214,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       socket.off(SocketEvent.CHAT_MESSAGE, onChatMessage);
       socket.off(SocketEvent.CANVAS_STATE, onCanvasState);
       socket.off(SocketEvent.AUTO_START, onAutoStart);
+      socket.off(SocketEvent.KICKED, onKicked);
+      socket.off(SocketEvent.SYSTEM_MESSAGE, onSystemMessage);
       socket.off(SocketEvent.ERROR, onError);
     };
   }, [resetRoom, addChat]);
@@ -209,9 +224,21 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   // Play button: random public room + random players (server dhoondhta hai ya banata hai)
   const quickPlay = useCallback(() => {
-    const { name, avatar } = getIdentity();
+    const { name, avatar, language } = getIdentity();
     setError(null);
-    socket.emit(SocketEvent.QUICK_PLAY, { playerName: name, avatar });
+    socket.emit(SocketEvent.QUICK_PLAY, { playerName: name, avatar, language });
+  }, []);
+
+  const kickPlayer = useCallback((playerId: string) => {
+    socket.emit(SocketEvent.KICK_PLAYER, { playerId });
+  }, []);
+
+  const banPlayer = useCallback((playerId: string) => {
+    socket.emit(SocketEvent.BAN_PLAYER, { playerId });
+  }, []);
+
+  const voteKick = useCallback((playerId: string) => {
+    socket.emit(SocketEvent.VOTE_KICK, { playerId });
   }, []);
 
   const playAgain = useCallback(() => {
@@ -269,6 +296,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
       canvasStrokes,
       autoStartIn,
       quickPlay,
+      kickPlayer,
+      banPlayer,
+      voteKick,
       playAgain,
       sendGuess,
       createRoom,
@@ -281,7 +311,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }),
     [
       connected, roomId, meId, players, settings, gameState, roundStart, error,
-      roundEnd, gameOver, chat, canvasStrokes, autoStartIn, quickPlay, playAgain, sendGuess,
+      roundEnd, gameOver, chat, canvasStrokes, autoStartIn, quickPlay, kickPlayer, banPlayer, voteKick, playAgain, sendGuess,
       createRoom, joinRoom, leaveRoom, updateSettings, toggleReady, startGame, clearError,
     ]
   );

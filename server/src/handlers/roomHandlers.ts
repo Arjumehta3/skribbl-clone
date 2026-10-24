@@ -22,6 +22,7 @@ interface JoinRoomData {
 interface QuickPlayData {
   playerName?: string;
   avatar?: string;
+  language?: string;
 }
 
 export function registerRoomHandlers(
@@ -153,11 +154,14 @@ export function registerRoomHandlers(
     handleLeave();
 
     try {
-      let room = rooms.findPublicRoom();
+      // Language ke hisaab se room: same language wala dhoondho, warna naya banao
+      const language = rooms.sanitizeSettings({ language: data?.language as RoomSettings["language"] }).language;
+      let room = rooms.findPublicRoom(language, name);
 
       if (!room) {
         room = rooms.createRoom({
           isPrivate: false,
+          language,
         });
       }
 

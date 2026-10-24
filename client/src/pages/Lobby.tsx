@@ -5,6 +5,7 @@ import DoodleAvatar from "../components/DoodleAvatar";
 import { toAvatarIndex } from "../utils/avatar";
 import { usePrefs } from "../utils/usePrefs";
 import SettingsPanel from "../components/SettingsPanel";
+import ModerationButtons from "../components/ModerationButtons";
 import { GamePhase } from "../enums/GamePhase";
 import { WordMode } from "../enums/WordMode";
 import type { RoomSettings } from "../types";
@@ -84,6 +85,8 @@ export default function Lobby() {
               <h1>Enter your name</h1>
               <p className="setup-subtitle">You are joining room {urlRoomId}</p>
               <input
+                id="player-name"
+                name="playerName"
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
                 placeholder="Your name"
@@ -131,6 +134,8 @@ export default function Lobby() {
       <span>{label}</span>
       <span>
         <input
+          id={`lobby-${key}`}
+          name={key}
           type="range"
           min={min}
           max={max}
@@ -198,6 +203,7 @@ export default function Lobby() {
                     {p.isReady ? "Ready" : "Not ready"}
                   </span>
                 )}
+                <ModerationButtons playerId={p.id} playerName={p.name} />
               </div>
             ))}
           </div>
@@ -210,8 +216,25 @@ export default function Lobby() {
             {slider("wordCount", "Words per turn", 1, 5)}
             {slider("hints", "Hints", 0, 5)}
             <div className="setting-row">
+              <span>Word language</span>
+              <select
+                id="lobby-language"
+                name="language"
+                value={view.language}
+                disabled={!isHost || isPublic}
+                onChange={(e) => updateSettings({ language: e.target.value as RoomSettings["language"] })}
+              >
+                <option value="English">English</option>
+                <option value="Hindi">Hindi (Roman)</option>
+                <option value="Spanish">Spanish</option>
+                <option value="French">French</option>
+              </select>
+            </div>
+            <div className="setting-row">
               <span>Word mode</span>
               <select
+                id="lobby-wordMode"
+                name="wordMode"
                 value={view.wordMode}
                 disabled={!isHost || isPublic}
                 onChange={(e) => updateSettings({ wordMode: e.target.value as RoomSettings["wordMode"] })}

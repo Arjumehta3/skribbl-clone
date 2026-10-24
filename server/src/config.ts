@@ -17,7 +17,10 @@ export const DEFAULT_SETTINGS: RoomSettings = {
   hints: 2,
   wordMode: WordMode.NORMAL,
   isPrivate: true,
+  language: "English",
 };
+
+export const LANGUAGES = ["English", "Hindi", "Spanish", "French"] as const;
 
 export const WORD_SELECT_SECONDS = 15;
 export const ROUND_END_SECONDS = 5;

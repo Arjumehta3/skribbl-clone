@@ -27,6 +27,8 @@ export default function SettingsPanel({ prefs, setPrefs, onClose, children }: Pr
       <h3 className="settings-title">🔊 Volume {prefs.volume}%</h3>
       <input
         className="volume-slider"
+        id="setting-volume"
+        name="volume"
         type="range"
         min="0"
         max="100"
@@ -48,6 +50,8 @@ export default function SettingsPanel({ prefs, setPrefs, onClose, children }: Pr
             <span>{name[0]!.toUpperCase() + name.slice(1)}</span>
             <input
               readOnly
+              id={`hotkey-${name}`}
+              name={`hotkey-${name}`}
               value={prefs.hotkeys[name].toUpperCase()}
               aria-label={`${name} hotkey`}
               onKeyDown={(e) => {
@@ -64,6 +68,8 @@ export default function SettingsPanel({ prefs, setPrefs, onClose, children }: Pr
       <label className="settings-select">
         Chat input position
         <select
+          id="setting-chat-position"
+          name="chatPosition"
           value={prefs.chatTop ? "top" : "bottom"}
           onChange={(e) => setPrefs((c) => ({ ...c, chatTop: e.target.value === "top" }))}
         >
@@ -74,6 +80,8 @@ export default function SettingsPanel({ prefs, setPrefs, onClose, children }: Pr
       <label className="settings-select">
         Chat bubbles (messages on drawing board)
         <select
+          id="setting-chat-bubbles"
+          name="chatBubbles"
           value={prefs.bubbles ? "on" : "off"}
           onChange={(e) => setPrefs((c) => ({ ...c, bubbles: e.target.value === "on" }))}
         >

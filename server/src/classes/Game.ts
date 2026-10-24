@@ -99,7 +99,7 @@ export class Game {
     this.currentStroke = null;
     this.room.broadcast(SocketEvent.CANVAS_CLEAR);
     this.room.getPlayers().forEach((p) => p.resetForRound());
-    this.wordOptions = getRandomWords(wordCount, this.usedWords);
+    this.wordOptions = getRandomWords(wordCount, this.usedWords, this.room.settings.language);
 
     this.broadcastState();
 

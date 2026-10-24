@@ -1,12 +1,20 @@
-import { WORDS } from "../data/words.js";
+import { WORD_LISTS } from "../data/wordLists.js";
+import type { Language } from "../types/index.js";
 
-const ALL_WORDS: string[] = Object.values(WORDS).flat();
+// Har language ki saari words ek flat list mein
+const ALL_WORDS: Record<Language, string[]> = {
+  English: Object.values(WORD_LISTS.English).flat(),
+  Hindi: Object.values(WORD_LISTS.Hindi).flat(),
+  Spanish: Object.values(WORD_LISTS.Spanish).flat(),
+  French: Object.values(WORD_LISTS.French).flat(),
+};
 
 // count jitne alag-alag random words deta hai.
 // exclude mein jo words hain (pehle use ho chuke), wo nahi aayenge.
-export function getRandomWords(count: number, exclude: Set<string> = new Set()): string[] {
-  let pool = ALL_WORDS.filter((w) => !exclude.has(w));
-  if (pool.length < count) pool = [...ALL_WORDS]; // sab words use ho gaye to reset
+export function getRandomWords(count: number, exclude: Set<string> = new Set(), language: Language = "English"): string[] {
+  const all = ALL_WORDS[language] ?? ALL_WORDS.English;
+  let pool = all.filter((w) => !exclude.has(w));
+  if (pool.length < count) pool = [...all]; // sab words use ho gaye to reset
 
   const result: string[] = [];
 

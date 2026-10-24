@@ -1,6 +1,8 @@
 import type { GamePhase } from "../enums/GamePhase";
 import type { WordMode } from "../enums/WordMode";
 
+export type Language = "English" | "Hindi" | "Spanish" | "French";
+
 export interface RoomSettings {
   maxPlayers: number; // 2-20
   rounds: number; // 2-10
@@ -9,6 +11,7 @@ export interface RoomSettings {
   hints: number; // 0-5
   wordMode: WordMode;
   isPrivate: boolean;
+  language: Language;
 }
 
 export interface Point {

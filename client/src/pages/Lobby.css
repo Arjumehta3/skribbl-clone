@@ -7,6 +7,7 @@
   min-height: 100vh;
   padding: 0 16px 18px;
   overflow-x: hidden;
+  overflow-x: clip;
   color: #111;
   font-family: Arial, Helvetica, sans-serif;
   background-color: #28599b;
@@ -268,7 +269,12 @@
   flex: 1;
   background: #fff;
   cursor: crosshair;
-  touch-action: none;
+  touch-action: auto; /* touchpad/mouse se page scroll chalta rahe */
+}
+
+/* Phone/tablet: ungli se draw karte waqt page scroll na ho */
+@media (pointer: coarse) {
+  .skribbl-canvas { touch-action: none; }
 }
 
 .canvas-disabled {
@@ -641,7 +647,6 @@
 
 /* ---- Phone par drawing / tools ---- */
 .skribbl-board { position: relative; }
-.skribbl-game { overscroll-behavior: none; }
 
 @media (pointer: coarse) {
   .skribbl-tools > button { width: 42px; height: 42px; font-size: 18px; }

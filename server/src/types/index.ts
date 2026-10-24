@@ -1,5 +1,7 @@
 import { WordMode } from "../enums/WordMode.js";
 
+export type Language = "English" | "Hindi" | "Spanish" | "French";
+
 export interface RoomSettings {
   maxPlayers: number;
   rounds: number;
@@ -8,6 +10,7 @@ export interface RoomSettings {
   hints: number; 
   wordMode: WordMode;
   isPrivate: boolean;
+  language: Language;
 }
 
 export interface Point {

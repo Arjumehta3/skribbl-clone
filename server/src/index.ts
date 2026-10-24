@@ -6,6 +6,7 @@ import { RoomManager } from "./classes/RoomManager.js";
 import { registerRoomHandlers } from "./handlers/roomHandlers.js";
 import { registerGameHandlers } from "./handlers/gameHandlers.js";
 import { registerDrawHandlers } from "./handlers/drawHandlers.js";
+import { registerModerationHandlers } from "./handlers/moderationHandlers.js";
 
 const PORT = Number(process.env.PORT) || 3000;
 // CLIENT_URL set ho to sirf wahi (comma se alag kar sakte ho); warna dev mein sab allowed (phone LAN testing ke liye)
@@ -31,6 +32,7 @@ io.on("connection", (socket) => {
   registerRoomHandlers(io, socket, rooms);
     registerGameHandlers(io, socket, rooms);
       registerDrawHandlers(io, socket, rooms);
+  registerModerationHandlers(io, socket, rooms);
 
   socket.on("ping", () => {
     socket.emit("pong", { time: Date.now() });

@@ -11,6 +11,8 @@ export class Room {
   private players: Map<string, Player> = new Map();
   private io: Server;
   private autoStartTimer: ReturnType<typeof setTimeout> | null = null;
+  private bannedNames: Set<string> = new Set(); // ban hue players ke naam (lowercase)
+  private kickVotes: Map<string, Set<string>> = new Map(); // target -> voters
 
   constructor(id: string, settings: RoomSettings, io: Server) {
     this.id = id;
@@ -21,6 +23,9 @@ export class Room {
   // ---------- Players ----------
 
   addPlayer(player: Player): void {
+    if (this.isBanned(player.name)) {
+      throw new Error("You are banned from this room");
+    }
     if (this.isFull()) {
       throw new Error("Room is full");
     }
@@ -36,6 +41,8 @@ export class Room {
     if (!player) return undefined;
 
     this.players.delete(playerId);
+    this.kickVotes.delete(playerId);
+    this.kickVotes.forEach((voters) => voters.delete(playerId));
 
     // Host chala gaya to sabse purane player ko naya host banao
     if (player.isHost && this.players.size > 0) {
@@ -67,6 +74,26 @@ export class Room {
 
   isEmpty(): boolean {
     return this.players.size === 0;
+  }
+
+  // ---------- Moderation ----------
+
+  ban(name: string): void {
+    this.bannedNames.add(name.trim().toLowerCase());
+  }
+
+  isBanned(name: string): boolean {
+    return this.bannedNames.has(name.trim().toLowerCase());
+  }
+
+  // Votekick: baaki players (target ko chhod kar) ka majority chahiye, kam se kam 3 players
+  addKickVote(targetId: string, voterId: string): { votes: number; needed: number } {
+    const voters = this.kickVotes.get(targetId) ?? new Set<string>();
+    voters.add(voterId);
+    this.kickVotes.set(targetId, voters);
+
+    const others = this.players.size - 1;
+    return { votes: voters.size, needed: Math.floor(others / 2) + 1 };
   }
 
   // ---------- Game ----------
