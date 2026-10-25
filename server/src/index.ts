@@ -1,5 +1,8 @@
 import express from "express";
 import http from "http";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import cors from "cors";
 import { Server } from "socket.io";
 import { RoomManager } from "./classes/RoomManager.js";
@@ -18,6 +21,17 @@ app.use(cors({ origin: ORIGIN }));
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
+
+// Production mein yahi server React build (client/dist) bhi dikhata hai, to ek hi URL se kaam chalta hai.
+// Local dev mein client/dist hota nahi, isliye ye hissa skip ho jata hai (Vite alag chalta hai).
+const CLIENT_DIST = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../client/dist");
+if (fs.existsSync(path.join(CLIENT_DIST, "index.html"))) {
+  app.use(express.static(CLIENT_DIST));
+  // React Router ke links (/room/ABC123) refresh karne par bhi index.html mile
+  app.get("/{*splat}", (_req, res) => {
+    res.sendFile(path.join(CLIENT_DIST, "index.html"));
+  });
+}
 
 const server = http.createServer(app);
 const io = new Server(server, {
