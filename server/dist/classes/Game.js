@@ -75,7 +75,7 @@ export class Game {
         this.currentStroke = null;
         this.room.broadcast(SocketEvent.CANVAS_CLEAR);
         this.room.getPlayers().forEach((p) => p.resetForRound());
-        this.wordOptions = getRandomWords(wordCount, this.usedWords);
+        this.wordOptions = getRandomWords(wordCount, this.usedWords, this.room.settings.language);
         this.broadcastState();
         // Words sirf drawer ko jaate hain
         for (const p of this.room.getPlayers()) {
@@ -209,6 +209,10 @@ export class Game {
             winner: leaderboard[0] ?? null,
             leaderboard,
         });
+        // Quick Play room: kuch der baad naya game apne aap
+        if (!this.room.settings.isPrivate) {
+            this.phaseTimer = setTimeout(() => this.room.scheduleAutoStart(3000), 12000);
+        }
     }
     // Player ke jaane ke BAAD call hoga
     handlePlayerLeft(playerId) {

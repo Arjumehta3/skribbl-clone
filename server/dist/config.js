@@ -14,7 +14,9 @@ export const DEFAULT_SETTINGS = {
     hints: 2,
     wordMode: WordMode.NORMAL,
     isPrivate: true,
+    language: "English",
 };
+export const LANGUAGES = ["English", "Hindi", "Spanish", "French"];
 export const WORD_SELECT_SECONDS = 15;
 export const ROUND_END_SECONDS = 5;
 export const GUESS_BASE_SCORE = 500;

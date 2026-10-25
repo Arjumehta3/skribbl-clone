@@ -16,6 +16,7 @@ export function registerRoomHandlers(_io, socket, rooms) {
                 players: result.room.getPlayersDTO(),
             });
             result.room.game?.handlePlayerLeft(result.player.id);
+            result.room.cancelAutoStartIfNeeded();
         }
     };
     // Naya room create karna
@@ -88,10 +89,13 @@ export function registerRoomHandlers(_io, socket, rooms) {
         }
         handleLeave();
         try {
-            let room = rooms.findPublicRoom();
+            // Language ke hisaab se room: same language wala dhoondho, warna naya banao
+            const language = rooms.sanitizeSettings({ language: data?.language }).language;
+            let room = rooms.findPublicRoom(language, name);
             if (!room) {
                 room = rooms.createRoom({
                     isPrivate: false,
+                    language,
                 });
             }
             const player = new Player(socket.id, name, false, typeof data?.avatar === "string" ? data.avatar : "0");
@@ -103,10 +107,16 @@ export function registerRoomHandlers(_io, socket, rooms) {
                 settings: room.settings,
                 you: player.toDTO(),
             });
+            // Chalta hua game ho to late joiner ko current state + drawing bhejo
+            if (room.game && room.game.phase !== GamePhase.GAME_OVER) {
+                socket.emit(SocketEvent.GAME_STATE, room.game.getStateFor(socket.id));
+                socket.emit(SocketEvent.CANVAS_STATE, { strokes: room.game.getStrokes() });
+            }
             socket.to(room.id).emit(SocketEvent.PLAYER_JOINED, {
                 player: player.toDTO(),
                 players: room.getPlayersDTO(),
             });
+            room.scheduleAutoStart();
         }
         catch (err) {
             const message = err instanceof Error ? err.message : "Quick Play failed";
@@ -167,11 +177,7 @@ export function registerRoomHandlers(_io, socket, rooms) {
         }
         if (room.game?.phase !== GamePhase.GAME_OVER)
             return;
-        room.resetToLobby();
-        room.broadcast(SocketEvent.ROOM_RESET, {
-            players: room.getPlayersDTO(),
-            settings: room.settings,
-        });
+        room.resetToLobby(); // ye room_reset khud broadcast karta hai
     });
     // Leave button
     socket.on(SocketEvent.LEAVE_ROOM, handleLeave);

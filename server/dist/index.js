@@ -6,41 +6,33 @@ import { RoomManager } from "./classes/RoomManager.js";
 import { registerRoomHandlers } from "./handlers/roomHandlers.js";
 import { registerGameHandlers } from "./handlers/gameHandlers.js";
 import { registerDrawHandlers } from "./handlers/drawHandlers.js";
+import { registerModerationHandlers } from "./handlers/moderationHandlers.js";
 const PORT = Number(process.env.PORT) || 3000;
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+// CLIENT_URL set ho to sirf wahi (comma se alag kar sakte ho); warna dev mein sab allowed (phone LAN testing ke liye)
+const ORIGIN = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(",").map((u) => u.trim()) : true;
 const app = express();
-app.use(cors({
-    origin: CLIENT_URL,
-}));
+app.use(cors({ origin: ORIGIN }));
 app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
 });
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: {
-        origin: CLIENT_URL,
-    },
+    cors: { origin: ORIGIN },
 });
 const rooms = new RoomManager(io);
 io.on("connection", (socket) => {
     console.log("Player connected:", socket.id);
-    // Register room-related events
     registerRoomHandlers(io, socket, rooms);
-    // Register game-related events
     registerGameHandlers(io, socket, rooms);
-    // Register drawing-related events
     registerDrawHandlers(io, socket, rooms);
-    // Connection test
+    registerModerationHandlers(io, socket, rooms);
     socket.on("ping", () => {
-        socket.emit("pong", {
-            time: Date.now(),
-        });
+        socket.emit("pong", { time: Date.now() });
     });
-    // Handle disconnection
     socket.on("disconnect", () => {
         console.log("Player disconnected:", socket.id);
     });
 });
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });

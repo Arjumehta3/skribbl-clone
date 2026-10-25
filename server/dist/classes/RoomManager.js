@@ -1,7 +1,8 @@
 import { Room } from "./Room.js";
 import { Player } from "./Player.js";
 import { generateRoomCode } from "../utils/roomCode.js";
-import { DEFAULT_SETTINGS, LIMITS } from "../config.js";
+import { DEFAULT_SETTINGS, LANGUAGES, LIMITS } from "../config.js";
+import { GamePhase } from "../enums/GamePhase.js";
 import { WordMode } from "../enums/WordMode.js";
 function clamp(value, min, max, fallback) {
     const n = Number(value);
@@ -21,6 +22,9 @@ export class RoomManager {
         const wordMode = Object.values(WordMode).includes(input.wordMode)
             ? input.wordMode
             : d.wordMode;
+        const language = LANGUAGES.includes(input.language)
+            ? input.language
+            : d.language;
         return {
             maxPlayers: clamp(input.maxPlayers, LIMITS.maxPlayers.min, LIMITS.maxPlayers.max, d.maxPlayers),
             rounds: clamp(input.rounds, LIMITS.rounds.min, LIMITS.rounds.max, d.rounds),
@@ -31,6 +35,7 @@ export class RoomManager {
             isPrivate: typeof input.isPrivate === "boolean"
                 ? input.isPrivate
                 : d.isPrivate,
+            language,
         };
     }
     createRoom(settings) {
@@ -43,15 +48,21 @@ export class RoomManager {
         return room;
     }
     // Quick Play ke liye suitable public room dhoondho
-    findPublicRoom() {
+    // Same language wale room ko pehle; jis room se ban hai wo skip
+    findPublicRoom(language = "English", playerName = "") {
+        let running;
         for (const room of this.rooms.values()) {
-            if (!room.settings.isPrivate &&
-                !room.isFull() &&
-                !room.game) {
-                return room;
-            }
+            if (room.settings.isPrivate || room.isFull())
+                continue;
+            if (room.settings.language !== language)
+                continue;
+            if (room.isBanned(playerName))
+                continue;
+            if (!room.game || room.game.phase === GamePhase.GAME_OVER)
+                return room; // lobby wala pehle
+            running ??= room; // warna chalta hua game join karwa do
         }
-        return undefined;
+        return running;
     }
     getRoom(roomId) {
         return this.rooms.get(roomId.trim().toUpperCase());
@@ -83,6 +94,7 @@ export class RoomManager {
         return { room, player };
     }
     deleteRoom(roomId) {
+        this.rooms.get(roomId)?.destroy();
         this.rooms.delete(roomId);
     }
 }

@@ -1,9 +1,18 @@
+// Case, extra spaces aur accents ignore (Spanish/French: "montaña" == "montana")
+function normalize(text) {
+    return text
+        .trim()
+        .toLowerCase()
+        .replace(/œ/g, "oe")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+}
 export function isCorrectGuess(guess, word) {
-    return guess.trim().toLowerCase() === word.trim().toLowerCase();
+    return normalize(guess) === normalize(word);
 }
 export function isCloseGuess(guess, word) {
-    const g = guess.trim().toLowerCase();
-    const w = word.trim().toLowerCase();
+    const g = normalize(guess);
+    const w = normalize(word);
     if (g.length !== w.length || g === w)
         return false;
     let differences = 0;
