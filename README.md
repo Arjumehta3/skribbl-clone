@@ -6,7 +6,7 @@ One player draws a secret word while everyone else tries to guess it. Faster gue
 
 ## Live Demo
 
-**https://YOUR-APP-URL.onrender.com**
+**https://skribbl-clone-197y.onrender.com**
 
 > Hosted on a free tier, so the first load after a period of inactivity can take 30–60 seconds while the server wakes up.
 
